@@ -1,0 +1,275 @@
+# CDGameEngine
+
+Moteur de jeu vidéo 3D en **C++ / Vulkan** avec éditeur intégré, développé sous Linux (cross-platform visé : Linux / Windows / macOS). Monde en **Z-up** (convention Blender).
+
+## Fonctionnalités
+
+### Rendu
+
+- Vulkan, éclairage **PBR** complet (BRDF Cook-Torrance : GGX, Smith, Fresnel-Schlick)
+- **Ombres portées** : shadow map en profondeur avec filtrage PCF, zone d'ombre ancrée sur le regard et sur la grille des texels (pas de scintillement), rayon adaptatif selon l'altitude
+- **Environnement HDR** : chargement de fichiers `.hdr` flottants, reflets mipmappés, affichage du ciel en fond
+- Contrôle d'**exposition** séparé (façon appareil photo) avec tone mapping
+- **Transparence** : pipeline en fusion alpha avec tri des objets de l'arrière vers l'avant
+- **Frustum culling** par objet, avec compteur dans le panneau Paramètres
+- Chargement de modèles via Assimp (`.obj`, `.fbx`, `.gltf`, `.glb`, `.dae`, `.stl`), multi-matériaux par sous-mesh
+- Modes de rendu de diagnostic : damier gris/blanc (texture manquante), magenta (UV absentes), couleur unie du matériau
+- **Texture projetée depuis le monde** (triplanaire) pour le blockout : étirer un cube n'étire pas le damier
+
+### Animation squelettique
+
+- Import du squelette et des poids par sommet (jusqu'à 4 os par sommet, normalisés)
+- **Skinning sur GPU** via un pipeline et un buffer de sommets dédiés — la géométrie des objets non animés n'est pas alourdie
+- Import de **clips d'animation** depuis le modèle lui-même ou depuis des fichiers séparés (compatible Mixamo)
+- Association des os **par nom**, insensible aux espaces de noms des FBX (`mixamorig:`, `Character1:`…)
+- **Ombres animées** : la passe d'ombre suit le mouvement, elle aussi skinnée
+- **Mode Éditeur d'animation** en plein écran : aperçu du personnage isolé, liste des clips, et **timeline** avec lecture, boucle, vitesse, et positionnement au clic image par image
+- Clips et état de lecture enregistrés dans le projet
+
+### Entrées
+
+- **Touches entièrement réassignables** depuis un panneau dédié, mémorisées dans `preferences.txt`
+- **Manettes** prises en charge (Xbox, PlayStation, Switch et compatibles) via le mapping standard de GLFW
+- Axes analogiques : le stick donne une vitesse progressive, pas du tout-ou-rien
+
+### Matériaux
+
+- **Assets partagés et réutilisables** : un matériau défini une fois, assignable à plusieurs objets
+- **8 cartes PBR** par matériau : couleur de base, normale, rugosité, métallique, occlusion ambiante, hauteur (parallax), émissif, opacité
+- Facteurs réglables en direct : teinte, opacité, métallique, rugosité, forces d'occlusion et de normale, couleur et intensité d'émission, amplitude du relief, répétition des UV
+- **Mode éditeur de matériaux** en plein écran, avec sphère de prévisualisation sur l'environnement HDR
+
+### Terrain
+
+- Heightfield entièrement paramétrable (taille monde et résolution de grille)
+- Géométrie en mémoire vidéo dédiée, mise à jour par transfert — les hautes résolutions restent fluides
+- Grille allégée pour la passe d'ombre (facteur réglable), invisible à l'œil et bien moins coûteuse
+- Sculpt au pinceau : monter/descendre, lisser, aplanir
+- Génération procédurale par bruit de Perlin / FBM, cohérente quelle que soit la résolution
+- Import de heightmap depuis une image (8 et 16 bits)
+- **4 couches de matériaux PBR** mélangées automatiquement selon l'altitude et la pente, avec largeur de fondu réglable
+- Transformable comme un objet ; le sculpt suit la transformation
+
+### Éditeur
+
+- Interface ImGui dockable : Hiérarchie, Inspecteur, Assets, Éclairage, Terrain, Matériaux, Caméra, Contrôles, Animation, Timeline, Console de script
+- Trois modes : **Scène**, **Éditeur de matériaux** et **Éditeur d'animation**
+- **Bibliothèque de primitives de blockout** disponible au démarrage : cube, sphère, cylindre, cône, pyramide, rampe, plan, plus un personnage
+- **Hiérarchie en arbre** avec parentage par glisser-déposer ; la position monde est conservée au reparentage (comportement Blender)
+- **Sélection multiple** (Ctrl+clic, Maj+clic) et **duplication** de la sélection avec ses descendants
+- Caméra style Blender : orbite, panoramique, zoom, centrage sur la sélection, plus un mode vol libre
+- Plans de coupe (near/far), vitesse de vol et rayon d'ombre réglables
+- Gizmos de manipulation (translation / rotation / échelle) avec alignement ; rotation interne en quaternions
+- Gizmo du soleil orientable, widget d'axes du monde, grille de repère paramétrable
+- **Annuler / Rétablir** global (objets, terrain, relief, matériaux, éclairage)
+- Objets nommables
+- Interface **multilingue** (français / anglais), extensible par simple fichier texte
+
+### Gameplay
+
+- Mode **Play / Stop** avec restauration de l'état d'édition
+- **Scripting Lua** : un script de scène et un script par objet, chacun dans son propre état Lua
+- API `Engine` : `count`, `getPosition` / `setPosition`, `getRotation` / `setRotation`, `isKeyDown`, `log`
+
+### Performances
+
+- **Cache de géométrie** au format binaire `.emesh` : un modèle importé une fois se recharge sans repasser par Assimp (de l'ordre de cinq fois plus rapide)
+- **Cache de textures** partagé : un même fichier utilisé par cinquante sous-meshes n'est chargé et stocké qu'une seule fois
+- Cache d'import global dans `~/.cache/CDGameEngine/`, jetable à tout moment (`rm -rf`)
+
+### Projets
+
+- Une sauvegarde = un **dossier de projet** créé à l'emplacement et au nom de votre choix
+- Projet autonome : modèles, textures, matériaux et animations copiés dedans, chemins relatifs dans le `scene.json`
+- Le relief du terrain est stocké à part en binaire (`terrain.bin`)
+- Ouverture directe d'un projet en argument de ligne de commande
+
+## Prérequis
+
+### Dépendances système
+
+Sur **Arch Linux** :
+
+```bash
+sudo pacman -S --needed base-devel cmake git assimp lua vulkan-icd-loader vulkan-intel nvidia-utils
+```
+
+Détail :
+
+- `base-devel`, `cmake`, `git` — outils de compilation (`git` est **indispensable** : voir plus bas)
+- `assimp` — chargeur de modèles 3D
+- `lua` — moteur de script
+- `vulkan-icd-loader` — loader Vulkan
+- `vulkan-intel`, `nvidia-utils` — pilotes GPU (adapter selon la carte : `vulkan-radeon` pour AMD, etc.)
+
+Il faut aussi le **SDK Vulkan** (headers + `glslc` pour compiler les shaders) : soit le SDK officiel installé à la main avec son environnement sourcé, soit `sudo pacman -S --needed vulkan-headers shaderc`.
+
+### Dépendances gérées automatiquement (rien à installer)
+
+- **GLFW** et **GLM** sont téléchargés et compilés par CMake (via `FetchContent`) — c'est pour ça que `git` est requis.
+- **ImGui** (branche docking), **ImGuizmo**, **ImGuiFileDialog** et **stb_image** sont embarqués dans `engine/third_party/`.
+
+## Compilation et lancement
+
+### Méthode rapide
+
+```bash
+./run.sh                      # compile les shaders, construit, lance
+./run.sh ~/Desktop/MonNiveau  # ... et ouvre directement un projet
+```
+
+Le script compile automatiquement **tous** les shaders du dossier `shaders/`, journalise la sortie dans `logs/` (un fichier horodaté par lancement) et s'arrête en affichant l'erreur si quelque chose échoue.
+
+### Méthode manuelle
+
+**1. Compiler les shaders en SPIR-V** — CMake ne le fait pas :
+
+```bash
+cd shaders
+for f in *.vert *.frag; do
+    case "$f" in
+        shader.vert) glslc "$f" -o vert.spv ;;
+        shader.frag) glslc "$f" -o frag.spv ;;
+        *)           glslc "$f" -o "${f%.*}_${f##*.}.spv" ;;
+    esac
+done
+cd ..
+```
+
+> À refaire à chaque modification d'un shader. Un oubli = les changements n'apparaissent pas.
+
+**2. Construire et lancer :**
+
+```bash
+cmake -S . -B build
+cmake --build build
+./build/bin/game            # ou : ./build/bin/game ~/Desktop/MonNiveau
+```
+
+> Après une réinstallation système, un renommage du dossier ou un clonage du dépôt, supprimer d'abord un éventuel ancien dossier de build : `rm -rf build`. CMake y mémorise des chemins absolus.
+
+Sur PC portable hybride (Optimus), pour forcer le GPU dédié : `prime-run ./build/bin/game`.
+
+## Premiers pas
+
+Au lancement, une fenêtre demande de **créer ou ouvrir un projet** : les scripts et la sauvegarde en dépendent. Un nouveau projet crée l'arborescence suivante :
+
+```
+MonNiveau/
+├── assets/
+│   ├── models/       # géométrie cuite en .emesh
+│   ├── textures/
+│   ├── materiaux/
+│   └── anims/        # fichiers d'animation
+├── code/
+│   └── main.lua      # script de scène (start / update)
+├── scene.json
+└── terrain.bin       # relief du terrain
+```
+
+## Contrôles
+
+Toutes les touches ci-dessous sont **réassignables** dans **Options → Fenêtres → Contrôles**, au clavier comme à la manette.
+
+### Navigation
+
+| Action | Commande |
+|---|---|
+| Orbiter | Clic droit (ou clic molette) + souris |
+| Panoramique | Maj + clic droit + souris |
+| Zoom | Molette |
+| Centrer sur la sélection | `F` ou `.` du pavé numérique |
+| Basculer en caméra libre | `Tab` |
+| Se déplacer (caméra libre) | `Z` `Q` `S` `D`, `Espace` / `Maj` |
+| Accélérer | `Ctrl` |
+
+### Édition
+
+| Action | Commande |
+|---|---|
+| Translation / Rotation / Échelle | `W` / `E` / `R` |
+| Aligner pendant la manipulation | Maintenir `Maj` |
+| Ajouter à la sélection | `Ctrl` + clic dans la Hiérarchie |
+| Sélectionner une plage | `Maj` + clic dans la Hiérarchie |
+| Dupliquer la sélection | `Ctrl+D` |
+| Supprimer la sélection | `Suppr` |
+| Parenter un objet | Le glisser sur un autre dans la Hiérarchie |
+| Détacher un objet | Le glisser dans la zone vide en bas de la Hiérarchie |
+| Tout désélectionner | `Échap` |
+| Annuler / Rétablir | `Ctrl+Z` / `Ctrl+Y` |
+| Saisir une valeur dans un curseur | `Ctrl` + clic |
+| Quitter | Menu **Fichier**, ou la croix de la fenêtre |
+
+### Sculpt du terrain
+
+Cocher *Activer le sculpt* dans le panneau Terrain, puis : **clic gauche** pour lever la matière, **clic droit** pour creuser (mode Monter/Descendre), **molette** pour le rayon du pinceau.
+
+## Matériaux
+
+Le mode **Éditeur de matériaux** (barre de menus) affiche une sphère de prévisualisation sur l'environnement HDR. On y crée un matériau, on lui charge ses cartes, on règle ses facteurs, et on coche les objets auxquels l'appliquer.
+
+Les textures doivent être **tileables** — [ambientCG](https://ambientcg.com) et [Poly Haven](https://polyhaven.com) en proposent de bonnes gratuitement. Dans une archive ambientCG, le fichier `_Color` correspond à la couleur de base, `_NormalGL` à la normale, `_Roughness` à la rugosité et `_AmbientOcclusion` à l'occlusion.
+
+Pour l'environnement, il faut une image **équirectangulaire** ; privilégier un `.hdr` en 1K ou 2K (en flottant, chaque pixel pèse 16 octets, donc un 8K occuperait plus de 500 Mo de mémoire vidéo).
+
+## Animation
+
+Le mode **Éditeur d'animation** isole le personnage sélectionné et affiche sa timeline.
+
+1. Sélectionner un objet **doté d'un squelette** en mode Scène, puis basculer dans l'éditeur d'animation.
+2. **Charger une animation (FBX)** depuis le panneau Animation.
+3. Choisir le clip dans la liste, puis contrôler la lecture depuis la timeline. Un clic dans la piste positionne la tête de lecture image par image.
+
+Les animations gratuites de [Mixamo](https://www.mixamo.com) fonctionnent directement. Exporter en **FBX Binary**, 30 images par seconde, sans réduction de clés ; choisir *With Skin* pour le personnage et *Without Skin* pour les animations suivantes. Cocher *In Place* tant que le moteur ne gère pas le déplacement issu de l'animation.
+
+Le personnage et ses animations doivent partager la même nomenclature d'os : le moteur associe les canaux **par nom**, sans retargeting.
+
+## Scripting
+
+Chaque objet peut recevoir un script depuis l'Inspecteur. Un script expose deux fonctions et reçoit `self`, l'index de son objet (`-1` pour le script de scène) :
+
+```lua
+function start()
+    Engine.log("Objet " .. self .. " pret")
+end
+
+function update(dt)
+    local x, y, z = Engine.getPosition(self)
+    if Engine.isKeyDown("W") then y = y + 5 * dt end
+    Engine.setPosition(self, x, y, z)
+end
+```
+
+Les scripts sont rechargés à chaque **Play** : il suffit de faire Stop puis Play pour tester une modification. Les erreurs s'affichent dans la Console de script.
+
+## Traductions
+
+L'interface démarre en anglais ; **Options → Language → Français** charge `lang/fr.txt`. Le choix est mémorisé dans `preferences.txt`.
+
+Le format est volontairement simple — une ligne `texte_anglais=traduction`, `#` pour un commentaire. Ajouter une langue revient donc à déposer un fichier `lang/xx.txt` et une entrée dans le menu : aucune recompilation n'est nécessaire. Une clé absente du fichier s'affiche telle quelle en anglais, jamais d'erreur.
+
+## Structure du projet
+
+```
+CDGameEngine/
+├── engine/
+│   ├── include/
+│   ├── src/          # core, renderer, scene, script, ui
+│   └── third_party/  # ImGui, ImGuizmo, ImGuiFileDialog, stb_image
+├── game/             # exécutable
+├── shaders/          # sources GLSL + .spv générés
+├── lang/             # fichiers de traduction
+├── assets/
+├── run.sh
+└── CMakeLists.txt
+```
+
+## Notes
+
+- `build/`, les `.spv`, `logs/`, `imgui.ini` et `preferences.txt` sont régénérables ou personnels : ils ne sont pas versionnés (voir `.gitignore`).
+- GLFW et GLM étant récupérés par CMake, une connexion Internet est nécessaire à la première configuration.
+- Les assets fournis avec un moteur doivent être librement redistribuables. Le contenu créé par Epic (mannequin d'Unreal, MetaHumans, Megascans) est licencié pour un usage avec Unreal Engine uniquement et n'a donc pas sa place ici.
+- Le personnage est la propriété de Adobe et il vient de mixamo, il permet présentement de tester des fonctionnalitées il doit être remplacer avant la distribution.
+- Le moteur n'a pas encore de **moteur physique ni de collisions** — c'est le prochain grand chantier. Viennent ensuite les cascaded shadow maps pour les grands terrains, et la machine à états d'animation.
+
+Ce readme est rédigé avec une ia.
