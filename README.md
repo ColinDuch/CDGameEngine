@@ -20,11 +20,14 @@ Moteur de jeu vidéo 3D en **C++ / Vulkan** avec éditeur intégré, développé
 
 - Import du squelette et des poids par sommet (jusqu'à 4 os par sommet, normalisés)
 - **Skinning sur GPU** via un pipeline et un buffer de sommets dédiés — la géométrie des objets non animés n'est pas alourdie
-- Import de **clips d'animation** depuis le modèle lui-même ou depuis des fichiers séparés (compatible Mixamo)
+- Import de **clips d'animation** depuis le modèle lui-même ou depuis des fichiers séparés (`.fbx`, `.gltf`, `.glb`, `.dae`, compatible Mixamo)
 - Association des os **par nom**, insensible aux espaces de noms des FBX (`mixamorig:`, `Character1:`…)
+- **Fondu entre clips** (cross-fade) : la pose précédente est mélangée à la nouvelle, durée réglable
 - **Ombres animées** : la passe d'ombre suit le mouvement, elle aussi skinnée
+- **Notifies** : des événements nommés posés sur la timeline (clic droit), déplaçables à la souris, déclenchés en jeu et transmis aux scripts Lua via `onNotify`
+- **Machine à états d'animation** *(en cours)* : états, transitions conditionnelles, paramètres Bool / Float / Trigger pilotés depuis Lua, attente de fin de clip. Le moteur d'exécution fonctionne ; l'éditeur visuel et la sauvegarde dans le projet restent à faire
 - **Mode Éditeur d'animation** en plein écran : aperçu du personnage isolé, liste des clips, et **timeline** avec lecture, boucle, vitesse, et positionnement au clic image par image
-- Clips et état de lecture enregistrés dans le projet
+- Clips, notifies et état de lecture enregistrés dans le projet
 
 ### Entrées
 
@@ -54,7 +57,7 @@ Moteur de jeu vidéo 3D en **C++ / Vulkan** avec éditeur intégré, développé
 
 - Interface ImGui dockable : Hiérarchie, Inspecteur, Assets, Éclairage, Terrain, Matériaux, Caméra, Contrôles, Animation, Timeline, Console de script
 - Trois modes : **Scène**, **Éditeur de matériaux** et **Éditeur d'animation**
-- **Bibliothèque de primitives de blockout** disponible au démarrage : cube, sphère, cylindre, cône, pyramide, rampe, plan, plus un personnage
+- **Bibliothèque de primitives de blockout** disponible au démarrage : cube, sphère, cylindre, cône, pyramide, rampe, plan, plus un personnage de test
 - **Hiérarchie en arbre** avec parentage par glisser-déposer ; la position monde est conservée au reparentage (comportement Blender)
 - **Sélection multiple** (Ctrl+clic, Maj+clic) et **duplication** de la sélection avec ses descendants
 - Caméra style Blender : orbite, panoramique, zoom, centrage sur la sélection, plus un mode vol libre
@@ -69,7 +72,12 @@ Moteur de jeu vidéo 3D en **C++ / Vulkan** avec éditeur intégré, développé
 
 - Mode **Play / Stop** avec restauration de l'état d'édition
 - **Scripting Lua** : un script de scène et un script par objet, chacun dans son propre état Lua
-- API `Engine` : `count`, `getPosition` / `setPosition`, `getRotation` / `setRotation`, `isKeyDown`, `log`
+- API `Engine` : transformations, clavier, journal et pilotage de la machine à états d'animation (voir [Scripting](#scripting))
+- Callbacks `start`, `update(dt)` et `onNotify(name, objectIndex)`
+
+### Import / export
+
+- **Export de la scène en glTF** (`.gltf`, géométrie et textures embarquées) depuis le menu Fichier
 
 ### Performances
 
@@ -104,12 +112,22 @@ Détail :
 
 Il faut aussi le **SDK Vulkan** (headers + `glslc` pour compiler les shaders) : soit le SDK officiel installé à la main avec son environnement sourcé, soit `sudo pacman -S --needed vulkan-headers shaderc`.
 
+Optionnel : `clang`, pour le script d'analyse des avertissements (voir plus bas).
+
 ### Dépendances gérées automatiquement (rien à installer)
 
 - **GLFW** et **GLM** sont téléchargés et compilés par CMake (via `FetchContent`) — c'est pour ça que `git` est requis.
 - **ImGui** (branche docking), **ImGuizmo**, **ImGuiFileDialog** et **stb_image** sont embarqués dans `engine/third_party/`.
 
 ## Compilation et lancement
+
+### Première fois
+
+`run.sh` recompile un build existant mais ne le configure pas. Au premier lancement (ou après un `rm -rf build`), configurer d'abord :
+
+```bash
+cmake -S . -B build
+```
 
 ### Méthode rapide
 
@@ -149,6 +167,15 @@ cmake --build build
 > Après une réinstallation système, un renommage du dossier ou un clonage du dépôt, supprimer d'abord un éventuel ancien dossier de build : `rm -rf build`. CMake y mémorise des chemins absolus.
 
 Sur PC portable hybride (Optimus), pour forcer le GPU dédié : `prime-run ./build/bin/game`.
+
+### Analyse avec Clang
+
+```bash
+./clang-warning.sh          # recompile tout avec Clang et résume les avertissements
+./clang-warning.sh --quick  # ne recompile que ce qui a changé
+```
+
+Clang repère des choses que GCC ignore, comme les membres de classe jamais utilisés. Le build vit dans `build-clang/`, jetable, et n'affecte pas `./run.sh`.
 
 ## Premiers pas
 
@@ -200,6 +227,15 @@ Toutes les touches ci-dessous sont **réassignables** dans **Options → Fenêtr
 | Saisir une valeur dans un curseur | `Ctrl` + clic |
 | Quitter | Menu **Fichier**, ou la croix de la fenêtre |
 
+### Timeline d'animation
+
+| Action | Commande |
+|---|---|
+| Positionner la tête de lecture | Clic gauche dans la piste |
+| Poser un notify | Clic droit dans la piste (avec le nom saisi dans *Notify name*) |
+| Déplacer un notify | Le glisser |
+| Régler ou supprimer un notify | Le sélectionner, puis *Notify time* / *Delete notify* |
+
 ### Sculpt du terrain
 
 Cocher *Activer le sculpt* dans le panneau Terrain, puis : **clic gauche** pour lever la matière, **clic droit** pour creuser (mode Monter/Descendre), **molette** pour le rayon du pinceau.
@@ -217,16 +253,30 @@ Pour l'environnement, il faut une image **équirectangulaire** ; privilégier un
 Le mode **Éditeur d'animation** isole le personnage sélectionné et affiche sa timeline.
 
 1. Sélectionner un objet **doté d'un squelette** en mode Scène, puis basculer dans l'éditeur d'animation.
-2. **Charger une animation (FBX)** depuis le panneau Animation.
-3. Choisir le clip dans la liste, puis contrôler la lecture depuis la timeline. Un clic dans la piste positionne la tête de lecture image par image.
+2. **Charger une animation** depuis le panneau Animation.
+3. Choisir le clip dans la liste, puis contrôler la lecture depuis la timeline. Un clic dans la piste positionne la tête de lecture image par image. La durée du fondu entre deux clips se règle avec *Blend time*.
 
 Les animations gratuites de [Mixamo](https://www.mixamo.com) fonctionnent directement. Exporter en **FBX Binary**, 30 images par seconde, sans réduction de clés ; choisir *With Skin* pour le personnage et *Without Skin* pour les animations suivantes. Cocher *In Place* tant que le moteur ne gère pas le déplacement issu de l'animation.
 
 Le personnage et ses animations doivent partager la même nomenclature d'os : le moteur associe les canaux **par nom**, sans retargeting.
 
+### Notifies
+
+Un notify est un événement nommé placé à un instant précis d'un clip : un pas, un coup qui touche, le début d'une fenêtre d'invincibilité… En mode Play, chaque notify franchi par la lecture appelle `onNotify` dans le script de l'objet **et** dans le script de scène, qui reçoit ainsi les notifies de tous les objets. Les notifies sont enregistrés avec le clip dans le projet.
+
+### Machine à états *(en cours)*
+
+La machine à états décide quel clip jouer ; le script se contente de lui fournir des paramètres. Le gameplay reste dans le code, la chorégraphie devient de la donnée.
+
+- Un **état** désigne un clip par son nom, avec sa vitesse et son mode boucle.
+- Une **transition** relie deux états (ou part de n'importe quel état) avec une durée de fondu. Elle se déclenche quand **toutes** ses conditions sont vraies, éventuellement seulement à la fin du clip en cours.
+- Un **paramètre** est un booléen, un flottant ou un trigger (un booléen remis à faux après usage).
+
+La machine n'avance qu'en mode Play. Pour l'instant elle est construite dans le code à titre de test ; l'éditeur et la sauvegarde viendront ensuite.
+
 ## Scripting
 
-Chaque objet peut recevoir un script depuis l'Inspecteur. Un script expose deux fonctions et reçoit `self`, l'index de son objet (`-1` pour le script de scène) :
+Chaque objet peut recevoir un script depuis l'Inspecteur. Un script reçoit `self`, l'index de son objet (`-1` pour le script de scène), et peut définir trois fonctions, toutes facultatives :
 
 ```lua
 function start()
@@ -235,12 +285,35 @@ end
 
 function update(dt)
     local x, y, z = Engine.getPosition(self)
-    if Engine.isKeyDown("W") then y = y + 5 * dt end
+    local moving = Engine.isKeyDown("W")
+    if moving then y = y + 5 * dt end
     Engine.setPosition(self, x, y, z)
+
+    Engine.setFloat(self, "speed", moving and 5 or 0)
+end
+
+function onNotify(name, objectIndex)
+    if name == "hit" then
+        Engine.log("Coup porte par l'objet " .. objectIndex)
+    end
 end
 ```
 
-Les scripts sont rechargés à chaque **Play** : il suffit de faire Stop puis Play pour tester une modification. Les erreurs s'affichent dans la Console de script.
+### API `Engine`
+
+| Fonction | Rôle |
+|---|---|
+| `Engine.count()` | Nombre d'objets dans la scène |
+| `Engine.getPosition(i)` / `Engine.setPosition(i, x, y, z)` | Position de l'objet `i` |
+| `Engine.getRotation(i)` / `Engine.setRotation(i, x, y, z)` | Rotation en degrés (angles d'Euler) |
+| `Engine.isKeyDown("W")` | Touche du clavier enfoncée |
+| `Engine.log("texte")` | Écrit dans la Console de script |
+| `Engine.setBool(i, "nom", valeur)` | Paramètre booléen de la machine à états |
+| `Engine.setFloat(i, "nom", valeur)` | Paramètre flottant de la machine à états |
+| `Engine.setTrigger(i, "nom")` | Déclenche un trigger de la machine à états |
+| `Engine.getAnimState(i)` | Nom de l'état d'animation courant (`nil` si aucun) |
+
+Les scripts sont rechargés à chaque **Play** : il suffit de faire Stop puis Play pour tester une modification. Les erreurs s'affichent dans la Console de script ; un script en erreur est désactivé jusqu'au prochain Play.
 
 ## Traductions
 
@@ -261,15 +334,25 @@ CDGameEngine/
 ├── lang/             # fichiers de traduction
 ├── assets/
 ├── run.sh
+├── clang-warning.sh
 └── CMakeLists.txt
 ```
 
+## Feuille de route
+
+1. **Moteur physique et collisions** — le prochain grand chantier
+2. **Machine à états d'animation** : éditeur, sauvegarde dans le projet, déplacement issu de l'animation (root motion)
+3. **Cascaded shadow maps** pour les grands terrains
+
+## Licence
+
+Le code du moteur est distribué sous **GNU GPL v3** (voir `LICENSE`). Les bibliothèques embarquées ou téléchargées conservent leurs propres licences, toutes permissives (MIT, zlib…).
+
 ## Notes
 
-- `build/`, les `.spv`, `logs/`, `imgui.ini` et `preferences.txt` sont régénérables ou personnels : ils ne sont pas versionnés (voir `.gitignore`).
+- `build/`, `build-clang/`, les `.spv`, `logs/`, `imgui.ini` et `preferences.txt` sont régénérables ou personnels : ils ne sont pas versionnés (voir `.gitignore`).
 - GLFW et GLM étant récupérés par CMake, une connexion Internet est nécessaire à la première configuration.
 - Les assets fournis avec un moteur doivent être librement redistribuables. Le contenu créé par Epic (mannequin d'Unreal, MetaHumans, Megascans) est licencié pour un usage avec Unreal Engine uniquement et n'a donc pas sa place ici.
-- Le personnage est la propriété de Adobe et il vient de mixamo, il permet présentement de tester des fonctionnalitées il doit être remplacer avant la distribution.
-- Le moteur n'a pas encore de **moteur physique ni de collisions** — c'est le prochain grand chantier. Viennent ensuite les cascaded shadow maps pour les grands terrains, et la machine à états d'animation.
+- Le personnage de test provient de Mixamo et appartient à Adobe. Il sert uniquement à tester les fonctionnalités et doit être remplacé avant toute distribution.
 
-Ce readme est rédigé avec une ia.
+Ce README est rédigé avec l'aide d'une IA.
