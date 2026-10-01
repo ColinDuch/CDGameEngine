@@ -367,6 +367,9 @@ private:
     void updateAnimations(float dt);
     std::vector<AnimationRefData> loadAnimations;
     std::vector<std::shared_ptr<AnimStateMachineAsset>> animMachines;   //assets partages
+    void saveAnimMachines();
+    void loadAnimMachines();
+    std::shared_ptr<AnimStateMachineAsset> findAnimMachine(const std::string& name) const;
 
     char animFilter[64] = "";
 

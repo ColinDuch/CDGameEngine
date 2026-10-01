@@ -106,6 +106,7 @@ void SceneSerializer::save(const std::string& path,
         w.key("animSpeed"); w.value(static_cast<double>(obj->animSpeed));
         w.key("animLoop"); w.value(static_cast<double>(obj->animLoop ?1 : 0));
         w.key("animPlaying"); w.value(static_cast<double>(obj->animPlaying ? 1 : 0));
+        w.key("stateMachine"); w.value(obj->stateMachine.asset ? obj->stateMachine.asset->name : std::string(""));
         w.endObject();
     }
     w.endArray();
@@ -245,6 +246,7 @@ SceneData SceneSerializer::load(const std::string& path) {
             data.animSpeed = o.has("animSpeed") ? static_cast<float>(o["animSpeed"].asDouble()) : 1.0f;
             data.animLoop = o.has("animLoop") ? (o["animLoop"].asDouble() != 0.0) : true;
             data.animPlaying = o.has("animPlaying") ? (o["animPlaying"].asDouble() != 0.0) : true;
+            data.stateMachine = o.has("stateMachine") ? o["stateMachine"].asString() : std::string("");
             scene.objects.push_back(data);
         }
     }

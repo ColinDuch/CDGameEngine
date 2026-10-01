@@ -36,6 +36,7 @@ struct SceneObjectData {
     float animSpeed = 1.0f;
     bool animLoop = true;
     bool animPlaying= true;
+    std::string stateMachine;   // nom de l asset, vide = aucune
 };
 
 struct TerrainData {

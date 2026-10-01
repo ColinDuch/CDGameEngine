@@ -22,6 +22,7 @@ Metallic=Métallique
 Roughness=Rugosité
 Save and quit=Enregistrer et quitter
 Quit=Quitter
+
 # --- Messages de scene / projet ---
 Pick a folder first with 'Save as...'=Choisis d'abord un dossier via « Enregistrer sous... »
 Project name and location=Nom et emplacement du projet
@@ -347,3 +348,14 @@ Playing=Lecture
 
 # --- Divers ---
 Ctrl+click a slider to type a value.=Ctrl+clic sur un curseur pour saisir une valeur.
+
+# --- Machine a etats ---
+Cannot write: %s=Impossible d'écrire : %s
+Incomplete write: %s=Écriture incomplète : %s
+Cannot open: %s=Impossible d'ouvrir : %s
+Invalid file: %s=Fichier invalide : %s
+Format newer than the engine: %s=Format plus récent que le moteur : %s
+Transition skipped, unknown state '%s' [%s]=Transition ignorée, état inconnu '%s' [%s]
+Condition blocked, unknown parameter '%s' [%s]=Condition bloquée, paramètre inconnu '%s' [%s]
+State machine not saved: %s=Machine à états non enregistrée : %s
+Unreadable state machine: %s=Machine à états illisible : %s

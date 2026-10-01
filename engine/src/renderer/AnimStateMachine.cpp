@@ -18,8 +18,21 @@ int AnimStateMachineAsset::findParam(const std::string& n) const {
 
 int AnimStateMachineAsset::findState(const std::string& n) const {
     for (size_t i = 0; i < states.size(); ++i)
-        if (params[i].name == n) return static_cast<int>(i);
+        if (states[i].name == n) return static_cast<int>(i);
     return -1;
+}
+
+void AnimStateMachineAsset::removeParam(int index) {
+    if (index < 0 || index >= static_cast<int>(params.size())) return;
+    params.erase(params.begin() + index);
+
+    for (auto& tr : transitions) {
+        for (auto& c : tr.conditions) {
+            if (c.param == index) c.param = -1;     //on ne supprime pas la condition
+            else if (c.param > index) --c.param;
+        }
+    }
+    touch();
 }
 
 void AnimStateMachineAsset::removeState(int index) {

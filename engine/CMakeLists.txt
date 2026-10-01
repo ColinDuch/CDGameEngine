@@ -51,6 +51,7 @@ add_library(engine STATIC
     src/scene/GltfExporter.cpp
     src/scene/JsonParser.cpp
     src/scene/SceneSerializer.cpp
+    src/scene/AnimStateMachineSerializer.cpp
 )
 
 target_include_directories(engine

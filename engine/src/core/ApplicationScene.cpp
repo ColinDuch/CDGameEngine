@@ -9,6 +9,8 @@
 #include <engine/renderer/DefaultNormal.hpp>
 #include <engine/renderer/Frustum.hpp>
 
+#include <engine/scene/AnimStateMachineSerializer.hpp>
+
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <stdexcept>
@@ -59,6 +61,63 @@ static std::shared_ptr<AnimStateMachineAsset> buildTestStateMachine() {
     sm->transitions.push_back(toIdle);
 
     return sm;
+}
+
+static std::string safeFileName(const std::string& name) {
+    std::string s = name;
+    for (char& c : s) {
+        if (c == '/' || c == '\\' || c== ' ') c = '_';
+    }
+    return s.empty() ? std::string("StateMachine") : s;
+}
+
+void Application::saveAnimMachines() {
+    namespace fs = std::filesystem;
+    const fs::path dir = fs::path(currentProjectDir) / "assets" / "anims";
+    for (const auto& sm : animMachines) {
+        const fs::path file = dir / (safeFileName(sm->name) + ".animsm");
+        try {
+            AnimStateMachineSerializer::save(*sm, file.string());
+        } catch (const std::exception& e) {
+            std::cerr << "[save] " << sm->name << " : " << e.what() << std::endl;
+            sceneMessage += " | " + Lang::fmt("State machine not saved: %s", sm->name.c_str());
+        }
+    }
+}
+
+void Application::loadAnimMachines() {
+    namespace fs = std::filesystem;
+    animMachines.clear();
+
+    const fs::path dir = fs::path(currentProjectDir) / "assets" / "anims";
+    std::error_code ec;
+    if (!fs::is_directory(dir, ec)) return;
+
+    for (const auto& entry : fs::directory_iterator(dir, ec)) {
+        if (entry.path().extension() != ".animsm") continue;
+        try {
+            std::string warnings;
+            animMachines.push_back(AnimStateMachineSerializer::load(entry.path().string(), warnings));
+            if (!warnings.empty()) {
+                std::cerr << "[load]" << warnings << std::endl;
+                sceneMessage += warnings;
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "[load] " << e.what() << std::endl;
+            sceneMessage += " | " + Lang::fmt("Unreadable state machine: %s", entry.path().filename().string().c_str());
+        }
+    }
+
+    // directory_iterator ne garantit aucun ordre : on trie pour un resultat stable
+    std::sort(animMachines.begin(), animMachines.end(), [](const auto& a, const auto& b) { return a->name < b->name; }); 
+}
+
+std::shared_ptr<AnimStateMachineAsset> Application::findAnimMachine(const std::string& name) const {
+    if (name.empty()) return nullptr;
+    for (const auto& sm : animMachines) {
+        if (sm->name == name) return sm;
+    }
+    return nullptr;
 }
 
 void Application::updateAnimations(float dt) {
@@ -329,6 +388,7 @@ void Application::saveScene() {
             }
         }
 
+        saveAnimMachines();
         SceneSerializer::save(scenePath.string(), sceneObjects, availableMeshes, *camera, td, ed, mats, loadAnimations, notifiesData);
         std::cout << "[save] " << sceneObjects.size() << " objets -> "
                   << scenePath.string() << std::endl;
@@ -404,6 +464,9 @@ void Application::loadScene() {
         }
         refreshMaterialSets();
         selectedMaterial = materials.empty() ? -1 : 0;
+
+        // --- Machines a etats (avant les objets, qui les referencent) ---
+        loadAnimMachines();
 
         // Un mesh cassé fait sauter un objet : les index se decalent, il faut une table.
         std::vector<int> indexMap(scene.objects.size(), -1);
@@ -504,7 +567,7 @@ void Application::loadScene() {
         }
 
         // les clips existent maintenant on peut les toruver par noms
-        for (size_t oi = 0; oi < sceneObjects.size(); ++oi) {
+        for (size_t oi = 0; oi < scene.objects.size(); ++oi) {
             int k = indexMap[oi];
             if (k < 0) continue;
             auto& varObj = sceneObjects[k];
@@ -512,6 +575,7 @@ void Application::loadScene() {
             varObj->animSpeed = varData.animSpeed;
             varObj->animLoop = varData.animLoop;
             varObj->animPlaying = varData.animPlaying;
+            varObj->stateMachine.asset = findAnimMachine(varData.stateMachine);
             varObj->animClip = -1;
             if (!varData.animClipName.empty() && varObj->meshIndex >=0 && varObj->meshIndex < static_cast<int>(availableMeshes.size())) {
                 const auto& varClip =availableMeshes[varObj->meshIndex]->getClips();
@@ -921,9 +985,11 @@ void Application::startPlay() {
 
     isPlaying = true;
 
-    if (animMachines.empty()) animMachines.push_back(buildTestStateMachine());      //temporaire
+    if (animMachines.empty()) animMachines.push_back(buildTestStateMachine());  // temporaire 
     for (auto& o : sceneObjects) {
-        if (!o->stateMachine.asset) o->stateMachine.asset = animMachines[0];    //temporaire
+        const bool skinned = o->meshIndex >= 0 && o->meshIndex < static_cast<int>(availableMeshes.size())
+            && availableMeshes[o->meshIndex]->isSkinned();
+        if (skinned && !o->stateMachine.asset) o->stateMachine.asset = animMachines[0];     // temporaire
         o->stateMachine.reset();
     }
 
