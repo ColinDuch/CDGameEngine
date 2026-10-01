@@ -38,26 +38,27 @@ void Application::refreshMaterialSets() {
     commandBuffer->setMaterials(sets, defaultMaterial->getSet());
 }
 
-// temporaire 
-static void buildTestStateMachine(SceneObject& obj) {
-    AnimStateMachine& sm = obj.stateMachine;
-    if (!sm.states.empty()) return;
+// temporaire : sera remplace par l editeur et la sauvegarde 
+static std::shared_ptr<AnimStateMachineAsset> buildTestStateMachine() {
+    auto sm = std::make_shared<AnimStateMachineAsset>();
+    sm->name = "Test";
+    sm->params.push_back({ "speed", AnimParamType::Float, 0.0f });
 
-    sm.params.push_back({ "speed", AnimParam::Type::Float, false, 0.0f});
+    sm->states.push_back({ "Idle", "Body Block", true, 1.0f });
+    sm->states.push_back({ "Jog", "Jogging", true, 1.0f });
+    sm->entry = 0;
 
-    sm.states.push_back({ "Body Block", "Body Block", true, 1.0f });
-    sm.states.push_back({ "Jogging", "Jogging", true, 1.0f });
-    sm.entry = 0;
-
-    AnimTransition toWalk;
-    toWalk.from = 0; toWalk.to = 1; toWalk.fade = 0.15f;
-    toWalk.conditions.push_back({ 0, AnimCondition::Op::Greater, 0.1f });
-    sm.transitions.push_back(toWalk);
+    AnimTransition toJog;
+    toJog.from = 0; toJog.to = 1; toJog.fade = 0.15f;
+    toJog.conditions.push_back({ 0, AnimCondition::Op::Greater, 0.1f });
+    sm->transitions.push_back(toJog);
 
     AnimTransition toIdle;
-    toIdle.from = 1; toIdle.to = 1; toWalk.fade = 0.15f;
-    toIdle.conditions.push_back({ 0, AnimCondition::Op::Greater, 0.1f });
-    sm.transitions.push_back(toIdle);
+    toIdle.from = 1; toIdle.to = 0; toIdle.fade = 0.15f;
+    toIdle.conditions.push_back({ 0, AnimCondition::Op::Less, 0.1f });
+    sm->transitions.push_back(toIdle);
+
+    return sm;
 }
 
 void Application::updateAnimations(float dt) {
@@ -917,8 +918,11 @@ void Application::startPlay() {
 
     isPlaying = true;
 
-    for (auto& o : sceneObjects) o->stateMachine.reset();
-    for (auto& o : sceneObjects) buildTestStateMachine(*o); //temporaire 
+    if (animMachines.empty()) animMachines.push_back(buildTestStateMachine());      //temporaire
+    for (auto& o : sceneObjects) {
+        if (!o->stateMachine.asset) o->stateMachine.asset = animMachines[0];    //temporaire
+        o->stateMachine.reset();
+    }
 
     scripts->clearLog();
     scriptStatus.clear();

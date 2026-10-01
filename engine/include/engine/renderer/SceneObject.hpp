@@ -64,7 +64,7 @@ public:
     float animBlendDuration = 0.2f;
     float animLastTime = 0.0f;  // temps de l image precedente 
     bool animJustEnded = false;
-    AnimStateMachine stateMachine;
+    AnimStateMachineInstance stateMachine;
 
     void playClip(int clip, float fade = 0.2f) {
         if (clip == animClip) return;

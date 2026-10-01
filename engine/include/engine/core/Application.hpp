@@ -366,6 +366,7 @@ private:
     std::vector<std::unique_ptr<BoneBuffer>> bonePool;
     void updateAnimations(float dt);
     std::vector<AnimationRefData> loadAnimations;
+    std::vector<std::shared_ptr<AnimStateMachineAsset>> animMachines;   //assets partages
 
     char animFilter[64] = "";
 

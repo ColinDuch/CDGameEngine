@@ -27,9 +27,9 @@ private:
     VkDebugUtilsMessengerEXT debugMessenger;
 
 #ifdef NDEBUG
-    static constexpr bool enableValidationLayers = false;
+    bool enableValidationLayers = false;
 #else
-    static constexpr bool enableValidationLayers = true;
+    bool enableValidationLayers = true;
 #endif
 
     const std::vector<const char*> validationLayers = {

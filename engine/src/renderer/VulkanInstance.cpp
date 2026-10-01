@@ -50,7 +50,9 @@ std::vector<const char*> VulkanInstance::getExtensionsWithDebug( const std::vect
 
 void VulkanInstance::createInstance(const std::vector<const char*>& requiredExtensions) {
     if (enableValidationLayers && !checkValidationLayerSupport()) {
-        throw std::runtime_error("validation layers requested, but not available!");
+        std::cerr << "[Vulkan] validation layers absentes : lancement sans "
+            "(installer vulkan-validation-layers pour les activer)\n";
+            enableValidationLayers = false;
     }
 
     VkApplicationInfo appInfo{};

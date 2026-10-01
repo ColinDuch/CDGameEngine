@@ -1,6 +1,21 @@
 #!/bin/bash
 cd "$(dirname "$0")" || exit 1
 
+# --- Lance dans un terminal si on n en a pas (double-clic) ---
+if [ ! -t 1 ] && [ -z "$CDGE_IN_TERMINAL" ]; then
+    export CDGE_IN_TERMINAL=1
+    SCRIPT="$(realpath "$0")"
+    for term in konsole gnome-terminal xfce4-terminal kitty alacritty xterm; do
+        if command -v "$term" >/dev/null 2>&1; then
+            case "$term" in
+                gnome-terminal) exec gnome-terminal -- "$SCRIPT" "$@" ;;
+                xfce4-terminal) exec xfce4-terminal -x "$SCRIPT" "$@" ;;
+                *)              exec "$term" -e "$SCRIPT" "$@" ;;
+            esac
+        fi
+    done
+fi
+
 # --- Journal horodate dans logs/ ---
 mkdir -p logs
 STAMP=$(date +%d-%m-%Y_%Hh%M)
@@ -38,6 +53,15 @@ cd ..
 
 echo ""
 echo "=== Compilation du moteur ==="
+if [ ! -d build ]; then
+    echo "  build/ absent : configuration CMake"
+    if ! cmake -S . -B build; then
+        echo ""
+        echo "!!! ERREUR de configuration CMake"
+        read -p "Entree pour fermer"
+        exit 1
+    fi
+fi
 if ! cmake --build build; then
     echo ""
     echo "!!! ERREUR de compilation"

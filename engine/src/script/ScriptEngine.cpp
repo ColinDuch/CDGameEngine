@@ -175,30 +175,32 @@ int ScriptEngine::api_isKeyDown(lua_State* L) {
 int ScriptEngine::api_setBool(lua_State* L) {
     SceneObject* o = objectAt(L, 1);
     const char* name = luaL_checkstring(L, 2);
-    o->stateMachine.setBool(name, lua_toboolean(L, 3) != 0);
+    if (!o->stateMachine.setBool(name, lua_toboolean(L, 3) != 0))
+        return luaL_error(L, "SetBool : pas de parametre Bool '%s'", name);
     return 0;
 }
 
 int ScriptEngine::api_setFloat(lua_State* L) {
-    SceneObject* o  = objectAt(L, 1);
+    SceneObject* o = objectAt(L, 1);
     const char* name = luaL_checkstring(L, 2);
-    o->stateMachine.setFloat(name, static_cast<float>(luaL_checknumber(L, 3)));
+    if (!o->stateMachine.setFloat(name, static_cast<float>(luaL_checknumber(L, 3))))
+        return luaL_error(L, "setFloat : pas de parametre Float '%s'", name);
     return 0;
 }
 
 int ScriptEngine::api_setTrigger(lua_State* L) {
     SceneObject* o = objectAt(L, 1);
-    o->stateMachine.setTrigger(luaL_checkstring(L, 2));
+    const char* name = luaL_checkstring(L, 2);
+    if (!o->stateMachine.setTrigger(name))
+        return luaL_error(L, " setTrigger : pas de parametre Trigger '%s'", name);
     return 0;
 }
 
 int ScriptEngine::api_getAnimState(lua_State* L) {
     SceneObject* o = objectAt(L, 1);
-    const AnimStateMachine& sm =o->stateMachine;
-    if (sm.current >= 0 && sm.current < static_cast<int>(sm.states.size()))
-        lua_pushstring(L, sm.states[sm.current].name.c_str());
-    else 
-        lua_pushnil(L);
+    const char* state = o->stateMachine.currentStateName();
+    if (state) lua_pushstring(L, state);
+    else lua_pushnil(L);
     return 1;
 }
 
