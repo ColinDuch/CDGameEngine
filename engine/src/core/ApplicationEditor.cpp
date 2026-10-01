@@ -367,7 +367,7 @@ void Application::drawTerrainPanel() {
     else if (brushMode == 1)
         ImGui::TextDisabled("%s", Lang::tr("LMB: smooth"));
     else
-        ImGui::TextDisabled("%s", Lang::tr("LMB: flatten (height = first clicked point)"));
+        ImGui::TextDisabled("%s", Lang::tr("LMB: flatten (height of the first clicked point)"));
     ImGui::TextDisabled("%s", Lang::tr("Wheel: adjust radius"));
 
     ImGui::Separator();
@@ -460,7 +460,7 @@ void Application::drawTerrainPanel() {
         noiseParams.add = prevAdd;
     }
 
-    ImGui::Checkbox ("Ajouter au relief actuel", &noiseParams.add);
+    ImGui::Checkbox (Lang::tr("Add to the current terrain"), &noiseParams.add);
 
     if (ImGui::Button(Lang::tr("Generate terrain (noise)"))) {
         terrain->generateNoise(noiseParams);
@@ -851,19 +851,19 @@ void Application::pushUndo() {
 }
 
 void Application::undo() {
-    if (undoStack.empty()) { sceneMessage = "Rien a annuler."; return; }
+    if (undoStack.empty()) { sceneMessage = Lang::tr("Nothing to undo."); return; }
     redoStack.push_back(captureState());
     applySnapshot(undoStack.back());
     undoStack.pop_back();
-    sceneMessage = "Annule (" + std::to_string(undoStack.size()) + " restant(s))";
+    sceneMessage = Lang::fmt("Undone (%d left)", static_cast<int>(undoStack.size()));
 }
 
 void Application::redo() {
-    if (redoStack.empty()) { sceneMessage = "Rien a retablir."; return; }
+    if (redoStack.empty()) { sceneMessage = Lang::tr("Nothing to redo."); return; }
     undoStack.push_back(captureState());
     applySnapshot(redoStack.back());
     redoStack.pop_back();
-    sceneMessage = "Retabli.";
+    sceneMessage = Lang::tr("Redone.");
 }
 
 void Application::drawSunGizmo() {

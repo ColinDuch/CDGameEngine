@@ -22,3 +22,328 @@ Metallic=Métallique
 Roughness=Rugosité
 Save and quit=Enregistrer et quitter
 Quit=Quitter
+# --- Messages de scene / projet ---
+Pick a folder first with 'Save as...'=Choisis d'abord un dossier via « Enregistrer sous... »
+Project name and location=Nom et emplacement du projet
+Project saved: %s=Projet enregistré : %s
+Save error: %s=Erreur d'enregistrement : %s
+Scene loaded: %d object(s)=Scène chargée : %d objet(s)
+Load error: %s=Erreur de chargement : %s
+Invalid project (scene.json not found): %s=Projet invalide (scene.json introuvable) : %s
+Copy failed: %s (%s)=Copie échouée : %s (%s)
+Mesh cache skipped: %s=Cache mesh ignoré : %s
+Map not found: %s=Carte introuvable : %s
+Unknown primitive: %s=Primitive inconnue : %s
+Mesh skipped: %s (%s)=Mesh ignoré : %s (%s)
+Animation skipped: %s=Animation ignorée : %s
+Environment not found=Environnement introuvable
+Export successful!=Export réussi !
+Error: %s=Erreur : %s
+Model imported: %s=Modèle importé : %s
+Import error: %s=Erreur d'import : %s
+Heightmap imported: %s=Heightmap importée : %s
+Heightmap error: %s=Erreur heightmap : %s
+Environment loaded: %s=Environnement chargé : %s
+Environment error: %s=Erreur environnement : %s
+Texture error: %s=Erreur texture : %s
+Clips added: %d=Clips ajoutés : %d
+Animation: %s=Animation : %s
+No project open.=Aucun projet ouvert.
+
+# --- Annuler / retablir ---
+Nothing to undo.=Rien à annuler.
+Undone (%d left)=Annulé (%d restant(s))
+Nothing to redo.=Rien à rétablir.
+Redone.=Rétabli.
+
+# --- Terrain ---
+Add to the current terrain=Ajouter au relief actuel
+LMB: flatten (height of the first clicked point)=Clic gauche : aplanir (hauteur du premier point cliqué)
+
+# --- Scripts ---
+Open or create a project first.=Ouvre ou crée un projet d'abord.
+Script assigned: %s=Script assigné : %s
+The script must be inside the project: %s=Le script doit être dans le projet : %s
+(not started yet)=(pas encore lancé)
+yes=oui
+no=non
+%d script(s) loaded=%d script(s) chargé(s)
+not found=introuvable
+unknown Lua error=erreur Lua inconnue
+invalid object index: %d=index d'objet invalide : %d
+unknown key: %s=touche inconnue : %s
+setBool: no Bool parameter '%s'=setBool : pas de paramètre Bool « %s »
+setFloat: no Float parameter '%s'=setFloat : pas de paramètre Float « %s »
+setTrigger: no Trigger parameter '%s'=setTrigger : pas de paramètre Trigger « %s »
+
+# --- Modeles de scripts Lua generes ---
+Scene script.=Script de la scène.
+start() runs on Play, update(dt) runs every frame.=start() est appelé au Play, update(dt) à chaque frame.
+Script started:=Script démarré :
+object(s)=objet(s)
+Script attached to an object. 'self' is the index of this object.=Script attaché à un objet. 'self' est l'index de cet objet.
+start(): once on play. update(dt): every frame.=start() : une fois au Play. update(dt) : à chaque image.
+Engine API: log, count,=API Engine : log, count,
+degrees, Z-up=degrés, Z-up
+name of the current state=nom de l'état courant
+
+# --- Noms de touches ---
+Space=Espace
+Escape=Échap
+Enter=Entrée
+Backspace=Retour
+Delete=Suppr
+Left=Gauche
+Right=Droite
+Up=Haut
+Down=Bas
+Left Shift=Maj G
+Right Shift=Maj D
+Left Ctrl=Ctrl G
+Right Ctrl=Ctrl D
+Left Alt=Alt G
+Right Alt=Alt D
+Numpad %s=Pavé %s
+Key %d=Touche %d
+
+# --- Boutons de manette ---
+A / Cross=A / Croix
+B / Circle=B / Rond
+X / Square=X / Carré
+D-Pad Up=D-Pad Haut
+D-Pad Right=D-Pad Droite
+D-Pad Down=D-Pad Bas
+D-Pad Left=D-Pad Gauche
+
+# =========================================================================
+# Interface complète
+# =========================================================================
+
+# --- Menus ---
+File=Fichier
+Edit=Édition
+Undo=Annuler
+Redo=Rétablir
+Options=Options
+Windows=Fenêtres
+Theme=Thème
+Dark=Sombre
+Light=Clair
+Classic=Classique
+Language=Langue
+Lock the interface=Verrouiller l'interface
+Play=Jouer
+Stop=Arrêter
+  [PLAY MODE]=  [MODE JEU]
+Scene=Scène
+Material editor=Éditeur de matériaux
+Animation editor=Éditeur d'animation
+Import a model (.obj, .fbx...)...=Importer un modèle (.obj, .fbx...)...
+Import a heightmap...=Importer une heightmap...
+Export scene (glTF)=Exporter la scène (glTF)
+Open a project...=Ouvrir un projet...
+Quit?=Quitter ?
+Close the engine?=Fermer le moteur ?
+Quit without saving=Quitter sans enregistrer
+No project open: nothing will be saved.=Aucun projet ouvert : rien ne sera enregistré.
+Project: %s=Projet : %s
+Open a scene?=Ouvrir une scène ?
+Opening a scene will replace the current one.=Ouvrir une scène remplacera celle en cours.
+Unsaved changes will be lost.=Les modifications non enregistrées seront perdues.
+Save then open=Enregistrer puis ouvrir
+Open without saving=Ouvrir sans enregistrer
+Cancel=Annuler
+Confirm=Confirmer
+
+# --- Panneaux ---
+Assets=Ressources
+Materials=Matériaux
+Controls=Contrôles
+Sun gizmo=Gizmo du soleil
+FPS counter=Compteur d'IPS
+World axes=Axes du monde
+Animation=Animation
+Start=Démarrer
+New=Nouveau
+Create=Créer
+New project...=Nouveau projet...
+Project name=Nom du projet
+Folder name=Nom du dossier
+Location: %s=Emplacement : %s
+Choose the project location=Choisir l'emplacement du projet
+Choose the project folder=Choisir le dossier du projet
+Choose a 3D model=Choisir un modèle 3D
+Choose a texture=Choisir une texture
+Choose a terrain texture=Choisir une texture de terrain
+Choose a heightmap (greyscale image)=Choisir une heightmap (image en niveaux de gris)
+Choose an environment image (equirectangular)=Choisir une image d'environnement (équirectangulaire)
+Scripts and saving require a project.=Les scripts et l'enregistrement nécessitent un projet.
+
+# --- Hiérarchie / inspecteur ---
+Add object=Ajouter un objet
+Remove=Supprimer
+Name=Nom
+Model=Modèle
+Texture=Texture
+Position=Position
+Rotation=Rotation
+Rotation (degrees)=Rotation (degrés)
+Scale=Échelle
+Transform of object %d=Transformation de l'objet %d
+No object selected=Aucun objet sélectionné
+No object in the scene.=Aucun objet dans la scène.
+Select an object.=Sélectionne un objet.
+No model loaded — check the log.=Aucun modèle chargé - consulte le journal.
+Objects (%zu):=Objets (%zu) :
+Script=Script
+(none)=(aucun)
+Create a script for this object=Créer un script pour cet objet
+Link a script...=Lier un script...
+Manipulation:=Manipulation :
+Translation=Translation
+Snap / Alignment (Shift)=Magnétisme / Alignement (Maj)
+Translation (tiles)=Translation (cases)
+Scale (step)=Échelle (pas)
+Hold Shift while manipulating.=Maintiens Maj pendant la manipulation.
+Orbit around selection=Orbiter autour de la sélection
+
+# --- Matériaux ---
+Load...=Charger...
+Select or create a material.=Sélectionne ou crée un matériau.
+Base color=Couleur de base
+Emissive=Émissif
+Emissive intensity=Intensité émissive
+Opacity=Opacité
+Normal strength=Intensité de la normale
+AO strength=Intensité de l'occlusion
+UV tiling=Répétition UV
+Texture maps=Cartes de textures
+Load a texture...=Charger une texture...
+Advanced colors=Couleurs avancées
+Factors=Facteurs
+Applied to=Appliqué à
+Apply to all=Appliquer à tout
+Remove from all=Retirer de partout
+Assign this material to all %d objects?=Assigner ce matériau aux %d objets ?
+Checker=Damier
+(default)=(par défaut)
+World-space texture (blockout)=Texture en espace monde (blockout)
+Tiling (units)=Répétition (unités)
+
+# --- Lumière / environnement ---
+Sun (light)=Soleil (lumière)
+Directional light=Lumière directionnelle
+Direction=Direction
+Color=Couleur
+Intensity=Intensité
+Ambient=Ambiante
+Shadow strength=Intensité des ombres
+Environment=Environnement
+Environment intensity=Intensité de l'environnement
+(default sky)=(ciel par défaut)
+Load an environment...=Charger un environnement...
+Show sky=Afficher le ciel
+
+# --- Caméra ---
+Position: %.2f  %.2f  %.2f=Position : %.2f  %.2f  %.2f
+Yaw / Pitch: %.1f  %.1f=Lacet / Tangage : %.1f  %.1f
+Field of view: %.1f=Champ de vision : %.1f
+Orbit distance: %.2f=Distance d'orbite : %.2f
+Near plane=Plan proche
+Far plane=Plan lointain
+Auto shadow radius=Rayon d'ombre automatique
+Shadow radius=Rayon des ombres
+Fly speed=Vitesse de vol
+Speed=Vitesse
+Frustum culling=Élimination hors champ
+Enable (auto)=Activer (auto)
+Culled: %d / %d=Éliminés : %d / %d
+
+# --- Terrain ---
+Terrain (ground)=Terrain (sol)
+Shadow mesh stride=Pas du maillage d'ombre
+Shadow triangles: %d=Triangles d'ombre : %d
+Mode:=Mode :
+Raise/Lower=Monter/Descendre
+Smooth=Lisser
+Flatten=Aplanir
+LMB: raise  |  RMB: lower=Clic gauche : monter  |  Clic droit : descendre
+LMB: smooth=Clic gauche : lisser
+Wheel: adjust radius=Molette : ajuster le rayon
+Reference grid=Grille de référence
+Extent (tiles)=Étendue (cases)
+Step (units)=Pas (unités)
+Size (world units)=Taille (unités monde)
+Width (X)=Largeur (X)
+Depth (Y)=Profondeur (Y)
+Resolution (vertices per axis)=Résolution (sommets par axe)
+Vertices X=Sommets X
+Vertices Y=Sommets Y
+%d x %d vertices, %d triangles=%d x %d sommets, %d triangles
+Regenerate terrain=Régénérer le terrain
+Tile size=Taille des cases
+Procedural generation (noise)=Génération procédurale (bruit)
+Amplitude=Amplitude
+Persistence=Persistance
+Lacunarity=Lacunarité
+Random seed=Graine aléatoire
+Randomize all=Tout randomiser
+Generate terrain (noise)=Générer le terrain (bruit)
+Imported heightmap=Heightmap importée
+Height scale=Échelle de hauteur
+Min altitude=Altitude min
+Max altitude=Altitude max
+The heightfield is replaced. Ctrl+Z to undo.=Le relief est remplacé. Ctrl+Z pour annuler.
+Ground materials (4 layers)=Matériaux du sol (4 couches)
+Auto texturing (altitude / slope)=Texturage auto (altitude / pente)
+Layer 1 up to=Couche 1 jusqu'à
+Layer 2 up to=Couche 2 jusqu'à
+Layer 3 up to=Couche 3 jusqu'à
+Slope threshold=Seuil de pente
+Blend width=Largeur de fondu
+
+# --- Contrôles ---
+Action=Action
+Key=Touche
+Gamepad=Manette
+Gamepad: %s=Manette : %s
+No gamepad detected=Aucune manette détectée
+Press a key or a button... (Escape to cancel)=Appuie sur une touche ou un bouton... (Échap pour annuler)
+Reset to defaults=Réinitialiser par défaut
+Deselect=Désélectionner
+
+# --- Console de script ---
+Camera: %s=Caméra : %s
+Status: %s=Statut : %s
+Active script: %s=Script actif : %s
+(no message)=(aucun message)
+Clear=Effacer
+
+# --- Compteur d'images par seconde ---
+%.1f FPS=%.1f IPS
+%.2f ms/frame=%.2f ms/image
+
+# --- Animation ---
+Search...=Rechercher...
+No animated object.=Aucun objet animé.
+This object has no skeleton.=Cet objet n'a pas de squelette.
+No clip. Load an animation file.=Aucun clip. Charge un fichier d'animation.
+Load animation (FBX)...=Charger une animation (FBX)...
+Selecte a clip in the Animation panel.=Sélectionne un clip dans le panneau Animation.
+Bind pose=Pose de repos
+Loop=Boucler
+Blend time=Temps de fondu
+Timeline=Ligne de temps
+Time=Temps
+frame=image
+clips=clips
+bones=os
+channels=canaux
+Notify name=Nom du notify
+Notify time=Temps du notify
+Delete notify=Supprimer le notify
+Right-click the track to add=Clic droit sur la piste pour ajouter
+Playing=Lecture
+
+# --- Divers ---
+Ctrl+click a slider to type a value.=Ctrl+clic sur un curseur pour saisir une valeur.

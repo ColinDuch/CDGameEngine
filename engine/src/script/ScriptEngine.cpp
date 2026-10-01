@@ -2,6 +2,7 @@
 #include <GLFW/glfw3.h>
 
 #include <engine/script/ScriptEngine.hpp>
+#include <engine/core/Localization.hpp>
 #include <engine/renderer/SceneObject.hpp>
 
 extern "C" {
@@ -27,7 +28,7 @@ namespace {
 
     std::string luaError(lua_State* L) {
         const char* m = lua_tostring(L, -1);
-        return m ? std::string(m) : std::string("erreur Lua inconnue");
+        return m ? std::string(m) : std::string(Lang::tr("unknown Lua error"));
     }
 
     int keyFromName(const std::string& n) {
@@ -107,7 +108,7 @@ SceneObject* ScriptEngine::objectAt(lua_State* L, int argIndex) {
     ScriptEngine* self = selfFromUpvalue(L);
     int i = static_cast<int>(luaL_checkinteger(L, argIndex));
     if (i < 0 || i >= static_cast<int>(self->objects.size())) {
-        luaL_error(L, "index d'objet invalide : %d", i);
+        luaL_error(L, Lang::tr("invalid object index: %d"), i);
         return nullptr;   // inatteignable (luaL_error saute)
     }
     return self->objects[i].get();
@@ -165,7 +166,7 @@ int ScriptEngine::api_isKeyDown(lua_State* L) {
     ScriptEngine* self = selfFromUpvalue(L);
     const char* name = luaL_checkstring(L, 1);
     int key = keyFromName(name);
-    if (key < 0) return luaL_error(L, "touche inconnue : %s", name);
+    if (key < 0) return luaL_error(L, Lang::tr("unknown key: %s"), name);
 
     bool down = self->windowHandle && glfwGetKey(self->windowHandle, key) == GLFW_PRESS;
     lua_pushboolean(L, down ? 1 : 0);
@@ -176,7 +177,7 @@ int ScriptEngine::api_setBool(lua_State* L) {
     SceneObject* o = objectAt(L, 1);
     const char* name = luaL_checkstring(L, 2);
     if (!o->stateMachine.setBool(name, lua_toboolean(L, 3) != 0))
-        return luaL_error(L, "SetBool : pas de parametre Bool '%s'", name);
+        return luaL_error(L, Lang::tr("setBool: no Bool parameter '%s'"), name);
     return 0;
 }
 
@@ -184,7 +185,7 @@ int ScriptEngine::api_setFloat(lua_State* L) {
     SceneObject* o = objectAt(L, 1);
     const char* name = luaL_checkstring(L, 2);
     if (!o->stateMachine.setFloat(name, static_cast<float>(luaL_checknumber(L, 3))))
-        return luaL_error(L, "setFloat : pas de parametre Float '%s'", name);
+        return luaL_error(L, Lang::tr("setFloat: no Float parameter '%s'"), name);
     return 0;
 }
 
@@ -192,7 +193,7 @@ int ScriptEngine::api_setTrigger(lua_State* L) {
     SceneObject* o = objectAt(L, 1);
     const char* name = luaL_checkstring(L, 2);
     if (!o->stateMachine.setTrigger(name))
-        return luaL_error(L, " setTrigger : pas de parametre Trigger '%s'", name);
+        return luaL_error(L, Lang::tr("setTrigger: no Trigger parameter '%s'"), name);
     return 0;
 }
 
@@ -253,14 +254,14 @@ void ScriptEngine::loadProject(const std::string& projectDir, std::string& outSt
         if (rel.empty()) continue;
 
         fs::path p = fs::path(projectDir) / rel;
-        if (!fs::exists(p)) { errors += rel + " : introuvable\n"; continue; }
+        if (!fs::exists(p)) { errors += rel + " : " + Lang::tr("not found") + "\n"; continue; }
 
         std::string err;
         if (openScript(p.string(), static_cast<int>(i), err)) loaded++;
         else errors += rel + " : " + err + "\n";
     }
 
-    outStatus = std::to_string(loaded) + " script(s) charge(s)";
+    outStatus = Lang::fmt("%d script(s) loaded", loaded);
     if (!errors.empty()) outStatus += "\n" + errors;
 }
 

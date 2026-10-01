@@ -6,5 +6,7 @@
 namespace Lang {
     void load(const std::string& file);   // ex "lang/fr.txt" ; chaine vide = anglais
     const char* tr(const char* key);
+    // Messages composes : la cle porte les %s / %d, le texte traduit est formate.
+    std::string fmt(const char* key, ...);
     const std::string& current();
 }

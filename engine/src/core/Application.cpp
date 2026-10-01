@@ -55,7 +55,7 @@ void Application::run() {
             currentProjectDir = fs::absolute(p).string();
             loadScene();
         } else {
-            sceneMessage = "Projet invalide (scene.json introuvable) : " + startupProject;
+            sceneMessage = Lang::fmt("Invalid project (scene.json not found): %s", startupProject.c_str());
         }
     }
 

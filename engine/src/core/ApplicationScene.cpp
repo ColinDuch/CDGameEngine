@@ -168,7 +168,7 @@ void Application::clearScene() {
 
 void Application::saveScene() {
     if (currentProjectDir.empty()) {
-        sceneMessage = "Choisis d'abord un dossier via 'Enregistrer sous...'";
+        sceneMessage = Lang::tr("Pick a folder first with 'Save as...'");
         return;
     }
     try {
@@ -186,7 +186,8 @@ void Application::saveScene() {
             if (fs::exists(d, ec) && fs::equivalent(s, d, ec)) return;
 
             fs::copy_file(s, d, fs::copy_options::overwrite_existing, ec);
-            if (ec) sceneMessage = "Copie echouee : " + s.filename().string() + " (" + ec.message() + ")";
+            if (ec) sceneMessage = Lang::fmt("Copy failed: %s (%s)",
+                                             s.filename().string().c_str(), ec.message().c_str());
 
             if (s.extension() == ".obj") {
                 fs::path mtl = s; mtl.replace_extension(".mtl");
@@ -291,7 +292,7 @@ void Application::saveScene() {
                 MeshCache::save(dst.string(), data);
                 availableMeshes[i]->setModelPath(dst.string());
             } catch (const std::exception& e) {
-                sceneMessage += std::string(" | Cache mesh ignore : ") + e.what();
+                sceneMessage += " | " + Lang::fmt("Mesh cache skipped: %s", e.what());
                 continue;
             }
             availableMeshes[i]->setModelPath(dst.string());
@@ -331,9 +332,9 @@ void Application::saveScene() {
         SceneSerializer::save(scenePath.string(), sceneObjects, availableMeshes, *camera, td, ed, mats, loadAnimations, notifiesData);
         std::cout << "[save] " << sceneObjects.size() << " objets -> "
                   << scenePath.string() << std::endl;
-        sceneMessage = "Projet enregistre : " + currentProjectDir;
+        sceneMessage = Lang::fmt("Project saved: %s", currentProjectDir.c_str());
     } catch (const std::exception& e) {
-        sceneMessage = std::string("Erreur enregistrement : ") + e.what();
+        sceneMessage = Lang::fmt("Save error: %s", e.what());
     }
 }
 
@@ -397,7 +398,7 @@ void Application::loadScene() {
                 try {
                     materials[idx]->setMap(i, resolve(md.mapPaths[i]));
                 } catch (const std::exception&) {
-                    sceneMessage += " | Carte introuvable : " + md.mapPaths[i];
+                    sceneMessage += " | " + Lang::fmt("Map not found: %s", md.mapPaths[i].c_str());
                 }
             }
         }
@@ -424,7 +425,7 @@ void Application::loadScene() {
                     }
                 }
                 if (meshIndex < 0) {
-                    sceneMessage += " | Primitive inconnue : " + bn;
+                    sceneMessage += " | " + Lang::fmt("Unknown primitive: %s", bn.c_str());
                     continue;
                 }
             }
@@ -449,8 +450,8 @@ void Application::loadScene() {
                     meshNames.push_back(std::filesystem::path(modelPath).stem().string());
                     meshIndex = static_cast<int>(availableMeshes.size() - 1);
                 } catch (const std::exception& e) {
-                    sceneMessage += " | Mesh ignore : " + objData.modelPath
-                                  + " (" + e.what() + ")";
+                    sceneMessage += " | " + Lang::fmt("Mesh skipped: %s (%s)",
+                                                      objData.modelPath.c_str(), e.what());
                     continue;   // on saute cet objet, le reste de la scene se charge
                 }
             }
@@ -486,7 +487,7 @@ void Application::loadScene() {
                     availableMeshes[m]->addClips(varNewClips);
                     loadAnimations.push_back({ ref.meshName, full });
                 } catch (const std::exception& e) {
-                    sceneMessage += std::string(" | Animation ignoree : ") + e.what();
+                    sceneMessage += " | " + Lang::fmt("Animation skipped: %s", e.what());
                 }
                 break;
             }
@@ -586,14 +587,14 @@ void Application::loadScene() {
                 try {
                     environment->setTexture(resolve(ed.envPath));
                 } catch (const std::exception&) {
-                    sceneMessage += " | Environnement introuvable";
+                    sceneMessage += " | " + std::string(Lang::tr("Environment not found"));
                 }
             }
         }
 
-        sceneMessage = "Scene chargee : " + std::to_string(scene.objects.size()) + " objet(s)";
+        sceneMessage = Lang::fmt("Scene loaded: %d object(s)", static_cast<int>(scene.objects.size()));
     } catch (const std::exception& e) {
-        sceneMessage = std::string("Erreur chargement : ") + e.what();
+        sceneMessage = Lang::fmt("Load error: %s", e.what());
     }
 
     for(size_t k = 0; k < sceneObjects.size(); ++k) {
@@ -621,7 +622,7 @@ void Application::drawFileMenu() {
             if (currentProjectDir.empty()) {
                 IGFD::FileDialogConfig config; config.path = ".";
                 ImGuiFileDialog::Instance()->OpenDialog("SaveProjectDlg",
-                "Nom et emplacement du projet", ".*", config);
+                Lang::tr("Project name and location"), ".*", config);
             } else {
                 saveScene();
             }
@@ -685,9 +686,9 @@ void Application::exportScene(const std::string& path) {
 
     try {
         GltfExporter::exportScene(path, sceneObjects, meshNames, meshVertices, meshIndices, meshTexturePaths);
-        exportMessage = "Export reussi !";
+        exportMessage = Lang::tr("Export successful!");
     } catch (const std::exception& e) {
-        exportMessage = std::string("Erreur : ") + e.what();
+        exportMessage = Lang::fmt("Error: %s", e.what());
     }
 }
 
@@ -718,9 +719,9 @@ void Application::importObjModel(const std::string& path) {
         sceneObjects.push_back(newObject);
         commandBuffer->setSceneObjects(sceneObjects);
 
-        sceneMessage = "Modele importe : " + name;
+        sceneMessage = Lang::fmt("Model imported: %s", name.c_str());
     } catch (const std::exception& e) {
-        sceneMessage = std::string("Erreur import : ") + e.what();
+        sceneMessage = Lang::fmt("Import error: %s", e.what());
     }
 }
 
@@ -758,9 +759,9 @@ void Application::drawFileDialogs() {
             std::string path = ImGuiFileDialog::Instance()->GetFilePathName();
             std::string err;
             if (terrain->loadHeightmapImage(path, heightmapMin, heightmapMax, err))
-                sceneMessage = "Heightmap importee : " + path;
+                sceneMessage = Lang::fmt("Heightmap imported: %s", path.c_str());
             else
-                sceneMessage = "Erreur heightmap : " + err;
+                sceneMessage = Lang::fmt("Heightmap error: %s", err.c_str());
         }
         ImGuiFileDialog::Instance()->Close();
     }
@@ -815,9 +816,9 @@ void Application::drawFileDialogs() {
             std::string varPath = ImGuiFileDialog::Instance()->GetFilePathName();
             try {
                 environment->setTexture(varPath);
-                sceneMessage = "Environnement charge : " + varPath;
+                sceneMessage = Lang::fmt("Environment loaded: %s", varPath.c_str());
             } catch (const std::exception& e) {
-                sceneMessage = std::string("Erreur environnement : ") + e.what();
+                sceneMessage = Lang::fmt("Environment error: %s", e.what());
             }
         }
         ImGuiFileDialog::Instance()->Close();
@@ -830,7 +831,7 @@ void Application::drawFileDialogs() {
                 materials[selectedMaterial]->setMap(
                     mapToLoad, ImGuiFileDialog::Instance()->GetFilePathName());
             } catch (const std::exception& e) {
-                sceneMessage = std::string("Erreur texture : ") + e.what();
+                sceneMessage = Lang::fmt("Texture error: %s", e.what());
             }
         }
         ImGuiFileDialog::Instance()->Close();
@@ -846,9 +847,9 @@ void Application::drawFileDialogs() {
                     auto newClips = Model::loadAnimations(varPath, availableMeshes[meshIdx]->getSkeleton());
                     availableMeshes[meshIdx]->addClips(newClips);
                     loadAnimations.push_back({ meshNames[meshIdx], varPath });
-                    sceneMessage = "Clips ajoutes : " + std::to_string(newClips.size());
+                    sceneMessage = Lang::fmt("Clips added: %d", static_cast<int>(newClips.size()));
                 } catch (const std::exception& e) {
-                    sceneMessage =std::string("Animation : ") + e.what();
+                    sceneMessage = Lang::fmt("Animation: %s", e.what());
                 }
             }
         }
@@ -864,10 +865,11 @@ void Application::drawFileDialogs() {
 
             if (selectedObjectIndex >= 0 && selectedObjectIndex <   static_cast<int>(sceneObjects.size())) {
                 if (ec || rel.empty() || rel.string().rfind("..", 0) == 0) {
-                    sceneMessage = "The script must be in the project : " + chosen.string();
+                    sceneMessage = Lang::fmt("The script must be inside the project: %s",
+                                             chosen.string().c_str());
                 } else {
                     sceneObjects[selectedObjectIndex]->scriptPath = rel.generic_string();
-                    sceneMessage = "Script assign : " + rel.generic_string();
+                    sceneMessage = Lang::fmt("Script assigned: %s", rel.generic_string().c_str());
                 }
             }
         }
@@ -886,10 +888,11 @@ void Application::createProjectHierarchy(const std::string& dir) {
     fs::path mainLua = fs::path(dir) / "code" / "main.lua";
     if (!fs::exists(mainLua)) {
         std::ofstream f(mainLua);
-        f << "-- Script de la scene.\n"
-             "-- start() est appele au Play, update(dt) a chaque frame.\n\n"
-             "function start()\n"
-             "    Engine.log(\"Script demarre : \" .. Engine.count() .. \" objet(s)\")\n"
+        f << "-- " << Lang::tr("Scene script.") << "\n"
+          << "-- " << Lang::tr("start() runs on Play, update(dt) runs every frame.") << "\n\n"
+          << "function start()\n"
+          << "    Engine.log(\"" << Lang::tr("Script started:") << " \" .. Engine.count() .. \" "
+          << Lang::tr("object(s)") << "\")\n"
              "end\n\n"
              "function update(dt)\n"
              "    if Engine.count() > 0 then\n"
@@ -927,7 +930,7 @@ void Application::startPlay() {
     scripts->clearLog();
     scriptStatus.clear();
     if (currentProjectDir.empty()) {
-        scriptStatus = "Aucun projet ouvert.";
+        scriptStatus = Lang::tr("No project open.");
     } else {
         scripts->loadProject(currentProjectDir, scriptStatus);
         std::string err;

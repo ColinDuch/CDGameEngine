@@ -1,4 +1,5 @@
 #include <engine/core/InputMap.hpp>
+#include <engine/core/Localization.hpp>
 
 #include <algorithm>
 #include <ostream>
@@ -93,29 +94,29 @@ bool InputMap::wasPressed(int action) const {
 std::string InputMap::keyName(int key) {
     if (key < 0) return "—";
     switch (key) {
-        case GLFW_KEY_SPACE:         return "Espace";
-        case GLFW_KEY_ESCAPE:        return "Echap";
-        case GLFW_KEY_ENTER:         return "Entree";
-        case GLFW_KEY_TAB:           return "Tab";
-        case GLFW_KEY_BACKSPACE:     return "Retour";
-        case GLFW_KEY_DELETE:        return "Suppr";
-        case GLFW_KEY_LEFT:          return "Gauche";
-        case GLFW_KEY_RIGHT:         return "Droite";
-        case GLFW_KEY_UP:            return "Haut";
-        case GLFW_KEY_DOWN:          return "Bas";
-        case GLFW_KEY_LEFT_SHIFT:    return "Maj G";
-        case GLFW_KEY_RIGHT_SHIFT:   return "Maj D";
-        case GLFW_KEY_LEFT_CONTROL:  return "Ctrl G";
-        case GLFW_KEY_RIGHT_CONTROL: return "Ctrl D";
-        case GLFW_KEY_LEFT_ALT:      return "Alt G";
-        case GLFW_KEY_RIGHT_ALT:     return "Alt D";
-        case GLFW_KEY_KP_DECIMAL:    return "Pave .";
+        case GLFW_KEY_SPACE:         return Lang::tr("Space");
+        case GLFW_KEY_ESCAPE:        return Lang::tr("Escape");
+        case GLFW_KEY_ENTER:         return Lang::tr("Enter");
+        case GLFW_KEY_TAB:           return Lang::tr("Tab");
+        case GLFW_KEY_BACKSPACE:     return Lang::tr("Backspace");
+        case GLFW_KEY_DELETE:        return Lang::tr("Delete");
+        case GLFW_KEY_LEFT:          return Lang::tr("Left");
+        case GLFW_KEY_RIGHT:         return Lang::tr("Right");
+        case GLFW_KEY_UP:            return Lang::tr("Up");
+        case GLFW_KEY_DOWN:          return Lang::tr("Down");
+        case GLFW_KEY_LEFT_SHIFT:    return Lang::tr("Left Shift");
+        case GLFW_KEY_RIGHT_SHIFT:   return Lang::tr("Right Shift");
+        case GLFW_KEY_LEFT_CONTROL:  return Lang::tr("Left Ctrl");
+        case GLFW_KEY_RIGHT_CONTROL: return Lang::tr("Right Ctrl");
+        case GLFW_KEY_LEFT_ALT:      return Lang::tr("Left Alt");
+        case GLFW_KEY_RIGHT_ALT:     return Lang::tr("Right Alt");
+        case GLFW_KEY_KP_DECIMAL:    return Lang::fmt("Numpad %s", ".");
         default: break;
     }
     if (key >= GLFW_KEY_F1 && key <= GLFW_KEY_F25)
         return "F" + std::to_string(key - GLFW_KEY_F1 + 1);
     if (key >= GLFW_KEY_KP_0 && key <= GLFW_KEY_KP_9)
-        return "Pave " + std::to_string(key - GLFW_KEY_KP_0);
+        return Lang::fmt("Numpad %s", std::to_string(key - GLFW_KEY_KP_0).c_str());
 
     // Touches imprimables : nom dependant de la disposition clavier (AZERTY, etc.).
     const char* n = glfwGetKeyName(key, 0);
@@ -124,15 +125,15 @@ std::string InputMap::keyName(int key) {
         for (char& c : s) c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
         return s;
     }
-    return "Touche " + std::to_string(key);
+    return Lang::fmt("Key %d", key);
 }
 
 std::string InputMap::padButtonName(int b) {
     switch (b) {
-        case GLFW_GAMEPAD_BUTTON_A:            return "A / Croix";
-        case GLFW_GAMEPAD_BUTTON_B:            return "B / Rond";
-        case GLFW_GAMEPAD_BUTTON_X:            return "X / Carre";
-        case GLFW_GAMEPAD_BUTTON_Y:            return "Y / Triangle";
+        case GLFW_GAMEPAD_BUTTON_A:            return Lang::tr("A / Cross");
+        case GLFW_GAMEPAD_BUTTON_B:            return Lang::tr("B / Circle");
+        case GLFW_GAMEPAD_BUTTON_X:            return Lang::tr("X / Square");
+        case GLFW_GAMEPAD_BUTTON_Y:            return Lang::tr("Y / Triangle");
         case GLFW_GAMEPAD_BUTTON_LEFT_BUMPER:  return "LB";
         case GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER: return "RB";
         case GLFW_GAMEPAD_BUTTON_BACK:         return "Select";
@@ -140,10 +141,10 @@ std::string InputMap::padButtonName(int b) {
         case GLFW_GAMEPAD_BUTTON_GUIDE:        return "Guide";
         case GLFW_GAMEPAD_BUTTON_LEFT_THUMB:   return "L3";
         case GLFW_GAMEPAD_BUTTON_RIGHT_THUMB:  return "R3";
-        case GLFW_GAMEPAD_BUTTON_DPAD_UP:      return "D-Pad Haut";
-        case GLFW_GAMEPAD_BUTTON_DPAD_RIGHT:   return "D-Pad Droite";
-        case GLFW_GAMEPAD_BUTTON_DPAD_DOWN:    return "D-Pad Bas";
-        case GLFW_GAMEPAD_BUTTON_DPAD_LEFT:    return "D-Pad Gauche";
+        case GLFW_GAMEPAD_BUTTON_DPAD_UP:      return Lang::tr("D-Pad Up");
+        case GLFW_GAMEPAD_BUTTON_DPAD_RIGHT:   return Lang::tr("D-Pad Right");
+        case GLFW_GAMEPAD_BUTTON_DPAD_DOWN:    return Lang::tr("D-Pad Down");
+        case GLFW_GAMEPAD_BUTTON_DPAD_LEFT:    return Lang::tr("D-Pad Left");
         default: return "—";
     }
 }

@@ -397,9 +397,9 @@ void Application::drawInspectorPanel() {
 
         if (ImGui::Button(Lang::tr("Create a script for this object"))) {
             if (currentProjectDir.empty()) {
-                sceneMessage = "Ouvre ou cree un projet d'abord.";
+                sceneMessage = Lang::tr("Open or create a project first.");
             } else {
-                std::string safe = selected->name.empty() ? "objet" : selected->name;
+                std::string safe = selected->name.empty() ? "object" : selected->name;
                 for (char& ch : safe) {
                     if (!std::isalnum(static_cast<unsigned char>(ch))) ch = '_';
                 }
@@ -408,28 +408,29 @@ void Application::drawInspectorPanel() {
                 std::filesystem::create_directories(p.parent_path());
                 if (!std::filesystem::exists(p)) {
                     std::ofstream f(p);
-                    f << "--Script attache a un objet. 'self' = index de cet objet.\n"
-                         "--start() : une fois au play. update(dt) : a chaque image. \n"
-                         "--\n"
-                         "-- API Engine : log, count, \n"
+                    f << "-- " << Lang::tr("Script attached to an object. 'self' is the index of this object.") << "\n"
+                      << "-- " << Lang::tr("start(): once on play. update(dt): every frame.") << "\n"
+                      << "--\n"
+                      << "-- " << Lang::tr("Engine API: log, count,") << "\n"
                          "--    getPosition(self) -> x, y, z        setPostion(self, x, y, z)\n"
-                         "--    getRotation(self) -> rx, ry, rz     setRotation(self, rx, ry, rz) -- degres, Z-up\n"
+                      << "--    getRotation(self) -> rx, ry, rz     setRotation(self, rx, ry, rz) -- "
+                      << Lang::tr("degrees, Z-up") << "\n"
                          "--    isKeyDown(\"W\") / (\"up\") / (\"space\")\n"
-                         "--    setBool(self, nom, v)  setFloat(self, nom, v) setTrigger(self, nom)\n"
-                         "--    getAnimState(self) -> nom de l'etat courant\n\n"
+                         "--    setBool(self, name, v)  setFloat(self, name, v) setTrigger(self, name)\n"
+                      << "--    getAnimState(self) -> " << Lang::tr("name of the current state") << "\n\n"
                          "function start()\n"
                          "end\n\n"
                          "function update(dt)\n"
                          "end\n";
                 }
                 selected->scriptPath = rel;
-                sceneMessage = "Script assigne : " + rel;
+                sceneMessage = Lang::fmt("Script assigned: %s", rel.c_str());
             }
         }
 
         if (ImGui::Button(Lang::tr("Link a script..."))) {
             if (currentProjectDir.empty()) {
-                sceneMessage = "Ouvre ou cree un projet d'abord.";
+                sceneMessage = Lang::tr("Open or create a project first.");
             } else {
                 IGFD::FileDialogConfig config;
                 config.path = (std::filesystem::path(currentProjectDir) / "code").string();
@@ -824,8 +825,10 @@ void Application::drawScriptConsole() {
     ImGui::TextWrapped(Lang::tr("Camera: %s"), camDebug.c_str());
     ImGui::Separator();
 
-    ImGui::TextWrapped(Lang::tr("Status: %s"), scriptStatus.empty() ? "(pas encore lance)" : scriptStatus.c_str());
-    ImGui::Text(Lang::tr("Active script: %s"), (scripts && scripts->hasScript()) ? "oui" : "non");
+    ImGui::TextWrapped(Lang::tr("Status: %s"),
+                       scriptStatus.empty() ? Lang::tr("(not started yet)") : scriptStatus.c_str());
+    ImGui::Text(Lang::tr("Active script: %s"),
+                (scripts && scripts->hasScript()) ? Lang::tr("yes") : Lang::tr("no"));
     ImGui::Separator();
 
     if (!scripts || scripts->getLog().empty()) {
