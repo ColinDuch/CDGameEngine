@@ -371,6 +371,13 @@ private:
     void loadAnimMachines();
     std::shared_ptr<AnimStateMachineAsset> findAnimMachine(const std::string& name) const;
 
+    bool showStateMachinePanel = true;
+    void drawStateMachinePanel();
+    void renameAnimMachine(AnimStateMachineAsset& sm, const std::string& wanted);
+    std::string smRenameBuf;    // saisie du nom en cours
+    const AnimStateMachineAsset* smRenameTarget = nullptr;
+    int smLastObject = -1;      // objet suivi pendant le play
+
     char animFilter[64] = "";
 
     int animSelectedNotify = -1;

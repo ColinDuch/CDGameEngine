@@ -40,42 +40,11 @@ void Application::refreshMaterialSets() {
     commandBuffer->setMaterials(sets, defaultMaterial->getSet());
 }
 
-// temporaire : sera remplace par l editeur et la sauvegarde 
-static std::shared_ptr<AnimStateMachineAsset> buildTestStateMachine() {
-    auto sm = std::make_shared<AnimStateMachineAsset>();
-    sm->name = "Test";
-    sm->params.push_back({ "speed", AnimParamType::Float, 0.0f });
-
-    sm->states.push_back({ "Idle", "Body Block", true, 1.0f });
-    sm->states.push_back({ "Jog", "Jogging", true, 1.0f });
-    sm->entry = 0;
-
-    AnimTransition toJog;
-    toJog.from = 0; toJog.to = 1; toJog.fade = 0.15f;
-    toJog.conditions.push_back({ 0, AnimCondition::Op::Greater, 0.1f });
-    sm->transitions.push_back(toJog);
-
-    AnimTransition toIdle;
-    toIdle.from = 1; toIdle.to = 0; toIdle.fade = 0.15f;
-    toIdle.conditions.push_back({ 0, AnimCondition::Op::Less, 0.1f });
-    sm->transitions.push_back(toIdle);
-
-    return sm;
-}
-
-static std::string safeFileName(const std::string& name) {
-    std::string s = name;
-    for (char& c : s) {
-        if (c == '/' || c == '\\' || c== ' ') c = '_';
-    }
-    return s.empty() ? std::string("StateMachine") : s;
-}
-
 void Application::saveAnimMachines() {
     namespace fs = std::filesystem;
     const fs::path dir = fs::path(currentProjectDir) / "assets" / "anims";
     for (const auto& sm : animMachines) {
-        const fs::path file = dir / (safeFileName(sm->name) + ".animsm");
+        const fs::path file = dir / AnimStateMachineSerializer::fileNameFor(sm->name);
         try {
             AnimStateMachineSerializer::save(*sm, file.string());
         } catch (const std::exception& e) {
@@ -985,13 +954,7 @@ void Application::startPlay() {
 
     isPlaying = true;
 
-    if (animMachines.empty()) animMachines.push_back(buildTestStateMachine());  // temporaire 
-    for (auto& o : sceneObjects) {
-        const bool skinned = o->meshIndex >= 0 && o->meshIndex < static_cast<int>(availableMeshes.size())
-            && availableMeshes[o->meshIndex]->isSkinned();
-        if (skinned && !o->stateMachine.asset) o->stateMachine.asset = animMachines[0];     // temporaire
-        o->stateMachine.reset();
-    }
+    for (auto& o : sceneObjects) o->stateMachine.reset();
 
     scripts->clearLog();
     scriptStatus.clear();

@@ -12,6 +12,9 @@ ils sont convertis en index au chargement
 */
 
 namespace AnimStateMachineSerializer {
+    // nom du fichier .animsm d une machine, sans caracteres interdits
+    std::string fileNameFor(const std::string& machineName);
+
     // throw si le fichier ne peut pas etre ecrit
     void save(const AnimStateMachineAsset& sm, const std::string& path);
 

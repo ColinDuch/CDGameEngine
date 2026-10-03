@@ -1,6 +1,7 @@
 #pragma once
 
 #include <engine/core/Localization.hpp>
+
 #include <string>
 
 // Fenetres et popups : le TEXTE suit la langue, l'ID (apres ###) reste fixe.

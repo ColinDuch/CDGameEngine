@@ -68,6 +68,7 @@ void Application::drawMenuBar() {
                 ImGui::MenuItem(Lang::tr("Materials"), nullptr, &showMaterialPanel);
                 ImGui::MenuItem(Lang::tr("Controls"), nullptr, &showInputPanel);
                 ImGui::MenuItem(Lang::tr("Settings"), nullptr, &showSettingsPanel);
+                ImGui::MenuItem(Lang::tr("State Machine"), nullptr, &showStateMachinePanel);
                 ImGui::EndMenu();
             }
 
@@ -635,6 +636,7 @@ void Application::buildUI() {
         drawAnimationPanel();
         drawTimelinePanel();
         drawCameraPanel();
+        drawStateMachinePanel();
 
     } else {
         drawMaterialPanel();

@@ -61,6 +61,14 @@ namespace {
     }
 }
 
+std::string AnimStateMachineSerializer::fileNameFor(const std::string& machineName) {
+    std::string s = machineName.empty() ? std::string("StateMachine"): machineName;
+    for (char& c : s) {
+        if (c == '/' || c == '\\' || c == ':' || c == ' ') c ='_';
+    }
+    return s + ".animsm";
+}
+
 void AnimStateMachineSerializer::save(const AnimStateMachineAsset& sm, const std::string& path) {
     namespace fs = std::filesystem;
     JsonWriter w;
