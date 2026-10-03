@@ -24,6 +24,7 @@ struct AnimParamDef {
     std::string name;
     AnimParamType type = AnimParamType::Bool;
     float defaultValue = 0.0f;  // Bool / Trigger : 0 ou 1
+    bool operator==(const AnimParamDef&) const = default;
 
 };
 
@@ -33,7 +34,7 @@ struct AnimCondition {
     int param = -1;     //index dans les params, -1 = parametre supprime
     Op op = Op::IsTrue;
     float value = 0.0f;
-
+    bool operator==(const AnimCondition&) const = default;
 };
 
 struct AnimTransition {
@@ -43,6 +44,7 @@ struct AnimTransition {
     float fade = 0.2f;
     bool waitEnd = false;       // n autorise qu une fois le clip fini 
     std::vector<AnimCondition> conditions;  // toutes vraies = ET
+    bool operator==(const AnimTransition&) const = default;
 
 };
 
@@ -52,6 +54,7 @@ struct AnimState {
     std::string clipName;       //par nom comme la persitance des clips 
     bool loop = true;
     float speed = 1.0f;
+    bool operator==(const AnimState&) const = default;
 
 };
 
@@ -70,6 +73,12 @@ class AnimStateMachineAsset {
 
         //supressions qui gardent les index coherents 
         void removeParam(int index);
+
+        // contenu identique (la revision n est pas comparee)
+        bool sameContent(const AnimStateMachineAsset& o) const;
+        // copie le contenu de o en gardant sa revision, puis touch()
+        void restoreFrom(const AnimStateMachineAsset& o);
+
         void removeState(int index);
 
         //a appeler apres tout changement de structure (ajout/supression/type)

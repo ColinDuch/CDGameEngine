@@ -2,6 +2,7 @@
 #include <engine/core/Config.hpp>
 #include <engine/core/Localization.hpp>
 #include <engine/core/UiHelpers.hpp>
+#include <engine/scene/AnimStateMachineSerializer.hpp>
 
 #include <engine/renderer/UniformBufferObject.hpp>
 #include <engine/renderer/GriGeometry.hpp>
@@ -266,17 +267,22 @@ void Application::duplicateSelection() {
             continue;                       // objet sans mesh : pas encore gere
 
         auto copy = std::make_shared<SceneObject>(availableMeshes[src->meshIndex]);
-        copy->position      = src->position;
-        copy->orientation   = src->orientation;
-        copy->scale         = src->scale;
-        copy->meshIndex     = src->meshIndex;
+        copy->position = src->position;
+        copy->orientation = src->orientation;
+        copy->scale = src->scale;
+        copy->meshIndex = src->meshIndex;
         copy->materialIndex = src->materialIndex;
-        copy->metallic      = src->metallic;
-        copy->roughness     = src->roughness;
-        copy->worldUvScale  = src->worldUvScale;
-        copy->scriptPath    = src->scriptPath;
-        copy->parent        = src->parent;   // corrige juste apres
-        copy->name          = src->name + " copy";
+        copy->metallic = src->metallic;
+        copy->roughness = src->roughness;
+        copy->worldUvScale = src->worldUvScale;
+        copy->scriptPath = src->scriptPath;
+        copy->parent = src->parent;   // corrige juste apres
+        copy->name = src->name + " copy";
+        copy->animClip = src->animClip;
+        copy->animSpeed = src->animSpeed;
+        copy->animPlaying = src->animPlaying;
+        copy->animLoop = src->animLoop;
+        copy->stateMachine.asset = src->stateMachine.asset;     // la copie partage la machine
 
         sceneObjects.push_back(copy);
         mapOldNew[i] = static_cast<int>(sceneObjects.size()) - 1;
@@ -753,16 +759,22 @@ Application::Snapshot Application::captureState() {
 
     for (const auto& o : sceneObjects) {
         ObjectState os;
-        os.meshIndex   = o->meshIndex;
-        os.position    = o->position;
+        os.meshIndex = o->meshIndex;
+        os.position = o->position;
         os.orientation = o->orientation;
-        os.scale       = o->scale;
-        os.scriptPath  = o->scriptPath;
-        os.metallic    = o->metallic;
-        os.roughness   = o->roughness;
-        os.name        = o->name;
-        os.parent      = o->parent;
+        os.scale = o->scale;
+        os.scriptPath = o->scriptPath;
+        os.metallic = o->metallic;
+        os.roughness = o->roughness;
+        os.name = o->name;
+        os.parent = o->parent;
         os.materialIndex = o->materialIndex;
+        os.worldUvScale = o->worldUvScale;
+        os.animClip = o->animClip;
+        os.animSpeed = o->animSpeed;
+        os.animPlaying = o->animPlaying;
+        os.animLoop = o->animLoop;
+        os.stateMachine = o->stateMachine.asset;
         s.objects.push_back(os);      // LE PUSH_BACK EN DERNIER, toujours
     }
 
@@ -786,6 +798,7 @@ Application::Snapshot Application::captureState() {
     s.lightDirection = lightDirection; s.lightColor = lightColor;
     s.lightIntensity = lightIntensity; s.ambientStrength = ambientStrength;
     s.shininess = shininess;
+    for (const auto& m : animMachines) s.machines.push_back({ m, *m});
     return s;
 }
 
@@ -806,6 +819,13 @@ void Application::applySnapshot(const Snapshot& s) {
         varObj->metallic  = os.metallic;
         varObj->roughness = os.roughness;
         varObj->name =os.name;
+        varObj->worldUvScale = os.worldUvScale;
+        varObj->animClip = os.animClip;
+        varObj->animSpeed = os.animSpeed;
+        varObj->animPlaying = os.animPlaying;
+        varObj->animLoop = os.animLoop;
+        varObj->stateMachine.asset = os.stateMachine;
+        varObj->stateMachine.reset();
     }
     commandBuffer->setSceneObjects(sceneObjects);
     updateWorldMatrices();
@@ -842,10 +862,26 @@ void Application::applySnapshot(const Snapshot& s) {
     lightDirection = s.lightDirection; lightColor = s.lightColor;
     lightIntensity = s.lightIntensity; ambientStrength = s.ambientStrength;
     shininess = s.shininess;
+
+    // --- Machines a etats : meme objets, contenu restaure ---
+    animMachines.clear();
+    for (const auto& ms : s.machines) {
+        // le nom change : l ancien fichier devra disparaitre au prochain save
+        if (ms.asset->name != ms.content.name) 
+            pendingMachineDeletes.push_back(AnimStateMachineSerializer::fileNameFor(ms.asset->name));
+        ms.asset->restoreFrom(ms.content);
+        animMachines.push_back(ms.asset);
+    }
+    smUndoRef = nullptr; // le panneau reprend sa copie de reference sans creer d entree
+    smRenameTarget = nullptr;   // et recharge le nom affiche
 }
 
 void Application::pushUndo() {
-    undoStack.push_back(captureState());
+    pushUndo(captureState());
+}
+
+void Application::pushUndo(Snapshot s) {
+    undoStack.push_back(std::move(s));
     if (undoStack.size() > 50) undoStack.erase(undoStack.begin());
     redoStack.clear();
 }

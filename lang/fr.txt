@@ -391,3 +391,5 @@ is true=est vrai
 is false=est faux
 Add condition=Ajouter une condition
 Add transition=Ajouter une transition
+Remove=Supprimer
+Delete this machine (Ctrl+Z to undo)=Supprimer cette machine (Ctrl+Z pour annuler)

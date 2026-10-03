@@ -35,6 +35,19 @@ void AnimStateMachineAsset::removeParam(int index) {
     touch();
 }
 
+bool AnimStateMachineAsset::sameContent(const AnimStateMachineAsset& o) const {
+    return name == o.name && entry == o.entry && params == o.params && states == o.states && transitions == o.transitions;
+}
+
+void AnimStateMachineAsset::restoreFrom(const AnimStateMachineAsset& o) {
+    name = o.name;
+    params = o.params;
+    states = o.states;
+    transitions = o.transitions;
+    entry = o.entry;
+    touch();    // la revision ne recule jamais : les instances se reinitialisent
+}
+
 void AnimStateMachineAsset::removeState(int index) {
     if (index < 0 || index >= static_cast<int>(states.size())) return;
     states.erase(states.begin() + index);

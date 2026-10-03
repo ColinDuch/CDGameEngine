@@ -6,7 +6,7 @@
 
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
-#include <filesystem>
+#include <algorithm>
 #include <string>
 
 /*
@@ -52,8 +52,6 @@ namespace {
 }
 
 void Application::renameAnimMachine(AnimStateMachineAsset& sm, const std::string& wanted) {
-    namespace fs = std::filesystem;
-
     // unicite sur le nom de fichier : "a b" et "a_b" donneraient le meme fichier
     const std::string newName = makeUnique(wanted, "StateMachine", [&](const std::string& n) {
         for (const auto& m : animMachines) {
@@ -64,15 +62,22 @@ void Application::renameAnimMachine(AnimStateMachineAsset& sm, const std::string
     });
     if (newName == sm.name) return;
 
-    // le fichier suit le nom, sinon l ancien resterait orphelin dans assets/anims
-    if (!currentProjectDir.empty()) {
-        const fs::path dir = fs::path(currentProjectDir) / "assets" / "anims";
-        const fs::path oldFile = dir / AnimStateMachineSerializer::fileNameFor(sm.name);
-        const fs::path newFile = dir / AnimStateMachineSerializer::fileNameFor(newName);
-        std::error_code ec;
-        if (fs::exists(oldFile, ec) && !fs::exists(newFile, ec)) fs::rename(oldFile, newFile, ec);
-    }
+    // l ancien fichier n est efface qu au prochain save, comme une suppression
+    pendingMachineDeletes.push_back(AnimStateMachineSerializer::fileNameFor(sm.name));
     sm.name= newName;
+}
+
+void Application::deleteAnimMachine(AnimStateMachineAsset* sm) {
+    // les objets qui l utilisent n ont plus de machine
+    for (auto& o : sceneObjects) {
+        if (o->stateMachine.asset.get() == sm) {
+            o->stateMachine.asset = nullptr;
+            o-> stateMachine.reset();
+        }
+    }
+    // le fichier n est efface qu prochain save : quitter sans enregistrer ne perd rien
+    pendingMachineDeletes.push_back(AnimStateMachineSerializer::fileNameFor(sm->name));
+    animMachines.erase(std::remove_if(animMachines.begin(), animMachines.end(), [sm](const auto& m) {return m.get() == sm;}), animMachines.end());
 }
 
 void Application::drawStateMachinePanel() {
@@ -109,11 +114,13 @@ void Application::drawStateMachinePanel() {
     ImGui::SetNextItemWidth(-80.0f);
     if (ImGui::BeginCombo("##machine", sm ? sm->name.c_str() : Lang::tr("(no machine)"))) {
         if (ImGui::Selectable(Lang::tr("(no machine)"), sm == nullptr)) {
+            if (sm) pushUndo();
             inst.asset = nullptr;
             inst.reset();
         }
         for (const auto& m : animMachines) {
             if (ImGui::Selectable(m->name.c_str(), m.get() == sm)) {
+                if (m.get() != sm) pushUndo();
                 inst.asset = m;
                 inst.reset();
             }
@@ -122,6 +129,7 @@ void Application::drawStateMachinePanel() {
     }
     ImGui::SameLine();
     if (ImGui::Button(Lang::tr("New"), ImVec2(-1.0f, 0.0f))) {
+        pushUndo();
         auto m= std::make_shared<AnimStateMachineAsset>();
         m->name = makeUnique("StateMachine", "StateMachine", [&](const std::string& n) {
             for (const auto& o : animMachines) {
@@ -141,17 +149,42 @@ void Application::drawStateMachinePanel() {
         return;
     }
 
+    // --- annuler / retablir ---
+    // une edition est terminee quand plus aucun widget n est actif :
+    // si le contenu a change depuis la copie, on empile l etat d avant
+    if (!ImGui::IsAnyItemActive()) {
+        if (smUndoRef != sm) {
+            smUndoRef = sm;
+            smUndoCopy = *sm;
+        } else if (!sm->sameContent(smUndoCopy)) {
+            Snapshot before = captureState();
+            for (auto& ms : before.machines) {
+                if (ms.asset.get() == sm) ms.content = smUndoCopy;
+            }
+            pushUndo(std::move(before));
+            smUndoCopy = *sm;
+        }
+    }
+
     // le tampon garde la saisie : le renommage (et celui du fichier) se fait a la validation
     if (smRenameTarget != sm) {
         smRenameTarget = sm;
         smRenameBuf = sm->name;
     }
-    ImGui::SetNextItemWidth(-1.0f);
+    ImGui::SetNextItemWidth(-80.0f);
     ImGui::InputText("##smname", & smRenameBuf);
     if (ImGui::IsItemDeactivatedAfterEdit()) {
         renameAnimMachine(*sm, smRenameBuf);
         smRenameBuf = sm->name;
     }
+    ImGui::SameLine();
+    if (ImGui::Button(Lang::tr("Remove"), ImVec2(-1.0f, 0.0f))) {
+        pushUndo();
+        deleteAnimMachine(sm);
+        ImGui::End();
+        return;
+    }
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Lang::tr("Delete this machine (ctrl+Z to undo)"));
 
     int users = 0;
     for (const auto& o : sceneObjects) {
@@ -185,7 +218,7 @@ void Application::drawStateMachinePanel() {
                 if (ImGui::IsItemDeactivatedAfterEdit()) {
                     p.name = makeUnique(p.name, "param", [&](const std::string& n) {
                         int found = sm->findParam(n);
-                        return found >= 0 && found != 1;
+                        return found >= 0 && found != i;
                     });
                 }
 

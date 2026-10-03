@@ -298,6 +298,17 @@ private:
         std::string name;
         int parent = -1;
         int materialIndex = -1;
+        float worldUvScale = 0.0f;
+        int animClip = -1;
+        float animSpeed = 1.0f;
+        bool animPlaying = true;
+        bool animLoop = true;
+        std::shared_ptr<const AnimStateMachineAsset> stateMachine;
+    };
+
+    struct MachineState {
+        std::shared_ptr<AnimStateMachineAsset> asset;   // quelle machine
+        AnimStateMachineAsset content;  // son contenu a cet instant
     };
 
     struct Snapshot {
@@ -312,6 +323,7 @@ private:
         uint64_t heightsVersion = 0;
         glm::vec3 lightDirection{0.0f}, lightColor{1.0f};
         float lightIntensity = 1.0f, ambientStrength = 0.2f, shininess = 32.0f;
+        std::vector<MachineState> machines;
     };
 
     std::vector<Snapshot> undoStack, redoStack;
@@ -322,6 +334,7 @@ private:
     Snapshot captureState();
     void applySnapshot(const Snapshot& s);
     void pushUndo();
+    void pushUndo(Snapshot s);     // empile un etat deja capture
     void undo();
     void redo();
 
@@ -377,6 +390,10 @@ private:
     std::string smRenameBuf;    // saisie du nom en cours
     const AnimStateMachineAsset* smRenameTarget = nullptr;
     int smLastObject = -1;      // objet suivi pendant le play
+    void deleteAnimMachine(AnimStateMachineAsset* sm);
+    std::vector<std::string> pendingMachineDeletes;     // fichiers a supprimer au prochain save
+    const AnimStateMachineAsset* smUndoRef = nullptr;   // machine suivie par l undo du panneau
+    AnimStateMachineAsset smUndoCopy;   // son contenu avant la derniere edition
 
     char animFilter[64] = "";
 

@@ -52,11 +52,24 @@ void Application::saveAnimMachines() {
             sceneMessage += " | " + Lang::fmt("State machine not saved: %s", sm->name.c_str());
         }
     }
+
+    // machines supprimees ou renommees : on efface leur ancien fichier,
+    // sauf si une machine actuelle porte ce nom (suppression anulee par ctrl+z)
+    for (const auto& f : pendingMachineDeletes) {
+        bool used = false;
+        for (const auto& sm : animMachines) {
+            if (AnimStateMachineSerializer::fileNameFor(sm->name) == f) used = true;
+        }
+        std::error_code ec;
+        if (!used) fs::remove(dir / f, ec);
+    }
+    pendingMachineDeletes.clear();
 }
 
 void Application::loadAnimMachines() {
     namespace fs = std::filesystem;
     animMachines.clear();
+    pendingMachineDeletes.clear();  // un autre projet : rien a supprimer 
 
     const fs::path dir = fs::path(currentProjectDir) / "assets" / "anims";
     std::error_code ec;
