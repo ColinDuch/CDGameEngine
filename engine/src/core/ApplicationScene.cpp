@@ -192,6 +192,7 @@ void Application::updateAnimations(float dt) {
 
 void Application::clearScene() {
     sceneObjects.clear();
+    nextObjectId = 1;
 
     if (availableMeshes.empty()) {
         loadBuiltinMeshes();
@@ -507,6 +508,7 @@ void Application::loadScene() {
             newObject->setEulerDegrees(objData.rotation);
             newObject->scale    = objData.scale;
             newObject->meshIndex = meshIndex;
+            newObject->id = claimObjectId(objData.id);
             newObject->name = objData.name.empty()
                 ? ("Object " + std::to_string(sceneObjects.size())) : objData.name;
             newObject->metallic  = objData.metallic;
@@ -761,6 +763,7 @@ void Application::importObjModel(const std::string& path) {
         auto newObject = std::make_shared<SceneObject>(availableMeshes[newMeshIndex]);
         newObject->position = glm::vec3(0.0f);
         newObject->meshIndex = newMeshIndex;
+        newObject->id = newObjectId();
         newObject->name = name;
         sceneObjects.push_back(newObject);
         commandBuffer->setSceneObjects(sceneObjects);

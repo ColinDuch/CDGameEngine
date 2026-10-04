@@ -276,6 +276,7 @@ void Application::initScene() {
         auto obj = std::make_shared<SceneObject>(availableMeshes[0]);
         obj->position = glm::vec3(0.0f);
         obj->meshIndex = 0;
+        obj->id = newObjectId();
         obj->name = meshNames[0];
         sceneObjects.push_back(obj);
     }

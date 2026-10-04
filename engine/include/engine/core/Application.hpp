@@ -183,6 +183,12 @@ private:
     void duplicateSelection();
     void deleteSelection();
 
+    // --- identifiants stable des objets ---
+    uint32_t nextObjectId = 1;
+    uint32_t newObjectId() { return nextObjectId++; }
+    uint32_t claimObjectId(uint32_t wanted);    // garde wanted s il est libre, sinon un neuf
+    int indexOfObject(uint32_t id) const;   // -1 si absent
+
     int  mapToLoad = 0;
     char materialNameBuf[64] = "Nouveau materiau";
     bool showMaterialPanel = true;
@@ -288,6 +294,7 @@ private:
     std::string camDebug;
 
     struct ObjectState {
+        uint32_t id = 0;
         int meshIndex = 0;
         glm::vec3 position{0.0f};
         glm::quat orientation{1.0f, 0.0f, 0.0f, 0.0f};

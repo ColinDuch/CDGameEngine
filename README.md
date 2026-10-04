@@ -264,7 +264,7 @@ Le personnage et ses animations doivent partager la même nomenclature d'os : le
 
 Un notify est un événement nommé placé à un instant précis d'un clip : un pas, un coup qui touche, le début d'une fenêtre d'invincibilité… En mode Play, chaque notify franchi par la lecture appelle `onNotify` dans le script de l'objet **et** dans le script de scène, qui reçoit ainsi les notifies de tous les objets. Les notifies sont enregistrés avec le clip dans le projet.
 
-### Machine à états *(en cours)*
+### Machine à états
 
 La machine à états décide quel clip jouer ; le script se contente de lui fournir des paramètres. Le gameplay reste dans le code, la chorégraphie devient de la donnée.
 

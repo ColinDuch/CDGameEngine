@@ -237,6 +237,21 @@ void Application::selectObject(int i, bool additive, bool range) {
     terrainSelected = false;
 }
 
+uint32_t Application::claimObjectId(uint32_t wanted) {
+    // 0 ou deja pris (fichier modifie a la main) : on en donne un neuf
+    if (wanted == 0 || indexOfObject(wanted) >= 0) return newObjectId();
+    if (wanted >= nextObjectId) nextObjectId = wanted + 1;  // les suivants ne le reprendront pas
+    return wanted;
+}
+
+int Application::indexOfObject(uint32_t id) const {
+    if (id == 0) return -1;
+    for (size_t i = 0; i < sceneObjects.size(); ++i) {
+        if (sceneObjects[i]->id == id) return static_cast<int>(i);
+    }
+    return -1;
+}
+ 
 void Application::duplicateSelection() {
     if (selectedObjects.empty()) return;
     const int n = static_cast<int>(sceneObjects.size());
@@ -271,6 +286,7 @@ void Application::duplicateSelection() {
         copy->orientation = src->orientation;
         copy->scale = src->scale;
         copy->meshIndex = src->meshIndex;
+        copy->id = newObjectId();   // une copie est un nouvel objet
         copy->materialIndex = src->materialIndex;
         copy->metallic = src->metallic;
         copy->roughness = src->roughness;
@@ -760,6 +776,7 @@ Application::Snapshot Application::captureState() {
     for (const auto& o : sceneObjects) {
         ObjectState os;
         os.meshIndex = o->meshIndex;
+        os.id = o->id;
         os.position = o->position;
         os.orientation = o->orientation;
         os.scale = o->scale;
@@ -809,6 +826,7 @@ void Application::applySnapshot(const Snapshot& s) {
         if (os.meshIndex < 0 || os.meshIndex >= static_cast<int>(availableMeshes.size())) continue;
         auto varObj = std::make_shared<SceneObject>(availableMeshes[os.meshIndex]);
         varObj->meshIndex   = os.meshIndex;
+        varObj->id = claimObjectId(os.id);
         varObj->position    = os.position;
         varObj->orientation = os.orientation;
         varObj->scale       = os.scale;

@@ -102,6 +102,7 @@ void SceneSerializer::save(const std::string& path,
         w.key("materialIndex"); w.value(static_cast<double>(obj->materialIndex));
         w.key("parent"); w.value(static_cast<double>(obj->parent));
         w.key("name"); w.value(obj->name);
+        w.key("id"); w.value(static_cast<double>(obj->id));
         w.key("animClip"); w.value(clipName);
         w.key("animSpeed"); w.value(static_cast<double>(obj->animSpeed));
         w.key("animLoop"); w.value(static_cast<double>(obj->animLoop ?1 : 0));
@@ -242,6 +243,7 @@ SceneData SceneSerializer::load(const std::string& path) {
                 ? static_cast<int>(o["materialIndex"].asDouble()) : -1;
             data.parent = o.has("parent") ? static_cast<int>(o["parent"].asDouble()) : -1;
             data.name = o.has("name") ? o["name"].asString() : std::string("");
+            data.id = (o.has("id") && o["id"].isNumber()) ? static_cast<uint32_t>(o["id"].asDouble()) : 0;
             data.animClipName = o.has("animClip") ? o["animClip"].asString() : std::string("");
             data.animSpeed = o.has("animSpeed") ? static_cast<float>(o["animSpeed"].asDouble()) : 1.0f;
             data.animLoop = o.has("animLoop") ? (o["animLoop"].asDouble() != 0.0) : true;

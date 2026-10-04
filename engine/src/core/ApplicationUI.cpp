@@ -176,6 +176,7 @@ void Application::drawAssetsPanel() {
         auto newObject = std::make_shared<SceneObject>(availableMeshes[selectedMeshIndex]);
         newObject->position = glm::vec3(static_cast<float>(sceneObjects.size()) * 2.0f, 0.0f, 0.0f);
         newObject->meshIndex = selectedMeshIndex;
+        newObject->id = newObjectId();
         newObject->name = meshNames[selectedMeshIndex] + " " + std::to_string(sceneObjects.size());
         newObject->metallic  = availableMeshes[newObject->meshIndex]->getMetallic();
         newObject->roughness = availableMeshes[newObject->meshIndex]->getRoughness();
@@ -351,6 +352,8 @@ void Application::drawInspectorPanel() {
         }
         if (ImGui::IsItemActivated()) pushUndo();
         ImGui::Separator();
+
+        ImGui::TextDisabled("ID %u", selected->id);
 
         ImGui::TextDisabled("materialIndex = %d  |  parent = %d",
                             selected->materialIndex, selected->parent);
