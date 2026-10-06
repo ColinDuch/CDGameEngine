@@ -150,7 +150,7 @@ void Application::drawAssetsPanel() {
 
     if (meshNames.empty()) {
         ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f),
-                           Lang::tr("No model loaded — check the log."));
+            "%s", Lang::tr("No model loaded — check the log."));
         ImGui::End();
         return;
     }
@@ -865,7 +865,7 @@ void Application::drawInputPanel() {
     // Capture de la nouvelle touche / du nouveau bouton.
     if (rebindAction >= 0) {
         ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.2f, 1.0f),
-                           Lang::tr("Press a key or a button... (Escape to cancel)"));
+            "%s", Lang::tr("Press a key or a button... (Escape to cancel)"));
 
         int k = InputMap::pollAnyKey(window->getHandle());
         int b = InputMap::pollAnyPadButton();
