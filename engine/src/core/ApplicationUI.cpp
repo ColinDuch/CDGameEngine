@@ -67,6 +67,7 @@ void Application::drawMenuBar() {
                 ImGui::MenuItem(Lang::tr("Animation"), nullptr, &showAnimationPanel);
                 ImGui::MenuItem(Lang::tr("Materials"), nullptr, &showMaterialPanel);
                 ImGui::MenuItem(Lang::tr("Controls"), nullptr, &showInputPanel);
+                ImGui::MenuItem(Lang::tr("Game controls"), nullptr, &showGameInputPanel);
                 ImGui::MenuItem(Lang::tr("Settings"), nullptr, &showSettingsPanel);
                 ImGui::MenuItem(Lang::tr("State machine"), nullptr, &showStateMachinePanel);
                 ImGui::EndMenu();
@@ -609,13 +610,13 @@ void Application::buildUI() {
     ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), dockFlags);
 
     ImGuiIO& undoIo = ImGui::GetIO();
-    if (undoIo.KeyCtrl && !undoIo.WantTextInput && !isPlaying) {
+    if (undoIo.KeyCtrl && !undoIo.WantTextInput && !isPlaying && !capturingKey()) {
         if (ImGui::IsKeyPressed(ImGuiKey_Z, false)) { undoIo.KeyShift ? redo() : undo(); }
         if (ImGui::IsKeyPressed(ImGuiKey_Y, false)) redo();
         if (ImGui::IsKeyPressed(ImGuiKey_D, false)) duplicateSelection();
     }
 
-    if (!undoIo.WantTextInput && !isPlaying && ImGui::IsKeyPressed(ImGuiKey_Delete, false)) {
+    if (!undoIo.WantTextInput && !isPlaying && !capturingKey() && ImGui::IsKeyPressed(ImGuiKey_Delete, false)) {
         deleteSelection();
     }
 
@@ -632,6 +633,7 @@ void Application::buildUI() {
         updateBrush();
         drawSunGizmo();
         drawGizmo();
+        drawGameInputPanel();
         drawInputPanel();
         drawSettingsPanel();
     } else if (editorMode == EditorMode::Animation) {

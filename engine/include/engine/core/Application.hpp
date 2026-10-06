@@ -332,6 +332,7 @@ private:
         glm::vec3 lightDirection{0.0f}, lightColor{1.0f};
         float lightIntensity = 1.0f, ambientStrength = 0.2f, shininess = 32.0f;
         std::vector<MachineState> machines;
+        std::vector<GameAction> gameActions;
     };
 
     std::vector<Snapshot> undoStack, redoStack;
@@ -370,6 +371,11 @@ private:
     int  rebindAction = -1;    // action en cours de reassignation (-1 = aucune)
     bool rebindPad = false;    // true = on attend un bouton de manette
     void drawInputPanel();
+    bool showGameInputPanel = false;
+    void drawGameInputPanel();
+    int gameRebindAction = -1;      // action de jeu en cours de capture (-1 = aucune)
+    int gameRebindSlot = 0;     // 0 = touche, 1 = seconde touche, 2 = button manette
+    bool capturingKey() const { return rebindAction >= 0 || gameRebindAction >= 0; }
     bool frustumCullingEnabled = true;
     int  culledCount = 0;
     int  lastOrbitSelection = -999;

@@ -396,3 +396,21 @@ Delete this machine (Ctrl+Z to undo)=Supprimer cette machine (Ctrl+Z pour annule
 
 unknown action: %s=action inconnue : %s
 Game input unreadable, defaults used=Contrôles du jeu illisibles, valeurs par défaut utilisées
+
+# --- Controles du jeu ---
+Game controls=Contrôles du jeu
+Scripts use the action name: Engine.isActionDown("name")=Les scripts utilisent le nom de l'action : Engine.isActionDown("nom")
+Alt key=Touche 2
+Stick / trigger=Stick / gâchette
+Click to assign, right-click to clear=Clic pour assigner, clic droit pour effacer
+Add action=Ajouter une action
+Left stick left=Stick gauche à gauche
+Left stick right=Stick gauche à droite
+Left stick up=Stick gauche en haut
+Left stick down=Stick gauche en bas
+Right stick left=Stick droit à gauche
+Right stick right=Stick droit à droite
+Right stick up=Stick droit en haut
+Right stick down=Stick droit en bas
+Left trigger=Gâchette gauche
+Right trigger=Gâchette droite
