@@ -39,19 +39,12 @@ void InputMap::resetDefaults() {
         GLFW_KEY_F, GLFW_KEY_KP_DECIMAL, -1, -1, 1.0f);
     set(ACTION_SNAP_MODIFIER,  "snap_modifier",  "Snap modifier",
         GLFW_KEY_LEFT_SHIFT, GLFW_KEY_RIGHT_SHIFT, -1, -1, 1.0f);
-    set(ACTION_JUMP,           "jump",           "Jump",
-        GLFW_KEY_SPACE, -1, GLFW_GAMEPAD_BUTTON_A, -1, 1.0f);
-    set(ACTION_INTERACT,       "interact",       "Interact",
-        GLFW_KEY_E, -1, GLFW_GAMEPAD_BUTTON_X, -1, 1.0f);
-    set(ACTION_ATTACK,         "attack",         "Attack",
-        -1, -1, GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER, -1, 1.0f);
 }
 
 void InputMap::update(GLFWwindow* window) {
     std::copy(std::begin(values), std::end(values), std::begin(previous));
 
-    // Premiere manette connectee qui expose un mapping standard.
-    GLFWgamepadstate pad{};
+    // premieres manette conectee qui expose un mapping standard.
     padConnected = false;
     padName.clear();
     for (int j = GLFW_JOYSTICK_1; j <= GLFW_JOYSTICK_LAST; ++j) {
@@ -64,24 +57,27 @@ void InputMap::update(GLFWwindow* window) {
     }
 
     for (int i = 0; i < ACTION_COUNT; ++i) {
-        const InputBinding& b = bindings[i];
-        float v = 0.0f;
+        values[i] = evaluate(bindings[i], window, gamepadState());
+    }
+}
 
-        if (b.key    >= 0 && glfwGetKey(window, b.key)    == GLFW_PRESS) v = 1.0f;
-        if (b.altKey >= 0 && glfwGetKey(window, b.altKey) == GLFW_PRESS) v = 1.0f;
+float InputMap::evaluate(const InputBinding& b, GLFWwindow* window, const GLFWgamepadstate* pad) {
+    float v= 0.0f;
 
-        if (padConnected) {
-            if (b.padButton >= 0 && pad.buttons[b.padButton] == GLFW_PRESS) v = 1.0f;
-            if (b.padAxis >= 0) {
-                // Les gachettes reposent a -1, le signe s'en occupe.
-                float a = pad.axes[b.padAxis] * b.axisSign;
-                if (a > kDeadzone) {
-                    v = std::max(v, (a - kDeadzone) / (1.0f - kDeadzone));
-                }
+    if (b.key >= 0 && glfwGetKey(window, b.key) == GLFW_PRESS) v = 1.0f;
+    if (b.altKey >= 0 && glfwGetKey(window, b.altKey) == GLFW_PRESS) v = 1.0f;
+
+    if (pad) {
+        if (b.padButton >= 0 && pad->buttons[b.padButton] == GLFW_PRESS) v = 1.0f;
+        if (b.padAxis >= 0) {
+            // les gachettes reposent a -1, le signe s'en occupe.
+            float a = pad->axes[b.padAxis] * b.axisSign;
+            if (a > kDeadzone) {
+                v= std::max(v, (a - kDeadzone) / (1.0f - kDeadzone));
             }
         }
-        values[i] = v;
     }
+    return v;
 }
 
 bool  InputMap::isDown(int action) const { return values[action] > 0.5f; }

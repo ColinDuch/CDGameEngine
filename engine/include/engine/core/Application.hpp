@@ -3,6 +3,7 @@
 #include <engine/core/Window.hpp>
 #include <engine/core/Localization.hpp>
 #include <engine/core/InputMap.hpp>
+#include <engine/core/GameInput.hpp>
 
 #include <engine/renderer/VulkanInstance.hpp>
 #include <engine/renderer/Surface.hpp>
@@ -364,6 +365,7 @@ private:
     bool deselectKeyWas = false;
     bool orbitAroundSelection = true;
     InputMap input;
+    GameInput gameInput;    // actions de jeu du projet (input.json)
     bool showInputPanel = false;
     int  rebindAction = -1;    // action en cours de reassignation (-1 = aucune)
     bool rebindPad = false;    // true = on attend un bouton de manette

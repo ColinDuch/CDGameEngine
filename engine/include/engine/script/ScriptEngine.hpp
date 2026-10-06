@@ -7,6 +7,7 @@
 struct lua_State;
 struct GLFWwindow;
 class SceneObject;
+class GameInput;
 
 // Un etat Lua par script : le script de scene (code/main.lua) et un script
 // par objet (SceneObject::scriptPath). Chaque script recoit un global `self`
@@ -20,6 +21,7 @@ public:
     ScriptEngine& operator=(const ScriptEngine&) = delete;
 
     void setWindow(GLFWwindow* w) { windowHandle = w; }
+    void setGameInput(const GameInput* g) { gameInput = g; }
 
     void loadProject(const std::string& projectDir, std::string& outStatus);
     void callStart(std::string& outError);
@@ -56,9 +58,15 @@ private:
     static int api_setFloat(lua_State* L);
     static int api_setTrigger(lua_State* L);
     static int api_getAnimState(lua_State* L);
+    static int api_isActionDown(lua_State* L);
+    static int api_wasActionPressed(lua_State* L);
+    static int api_wasActionReleased(lua_State* L);
+    static int api_getActionValue(lua_State* L);
+    static int api_getAxis(lua_State* L);
 
     std::vector<Instance> instances;
     std::vector<std::shared_ptr<SceneObject>>& objects;
     GLFWwindow* windowHandle = nullptr;
+    const GameInput* gameInput = nullptr;
     std::string logText;
 };

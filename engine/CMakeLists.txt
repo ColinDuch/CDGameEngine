@@ -7,6 +7,7 @@ add_library(engine STATIC
     src/core/ApplicationEditor.cpp
     src/core/ApplicationScene.cpp
     src/core/ApplicationStateMachine.cpp
+    src/core/GameInput.cpp
 
     src/ui/ImGuiLayer.cpp
 

@@ -2,7 +2,10 @@
 #include <GLFW/glfw3.h>
 
 #include <engine/script/ScriptEngine.hpp>
+
 #include <engine/core/Localization.hpp>
+#include <engine/core/GameInput.hpp>
+
 #include <engine/renderer/SceneObject.hpp>
 
 extern "C" {
@@ -100,6 +103,11 @@ void ScriptEngine::registerApi(lua_State* L) {
     reg("setFloat", &ScriptEngine::api_setFloat);
     reg("setTrigger", &ScriptEngine::api_setTrigger);
     reg("getAnimState", &ScriptEngine::api_getAnimState);
+    reg("isActionDown", &ScriptEngine::api_isActionDown);
+    reg("wasActionPressed", &ScriptEngine::api_wasActionPressed);
+    reg("wasActionReleased", &ScriptEngine::api_wasActionReleased);
+    reg("getActionValue", &ScriptEngine::api_getActionValue);
+    reg("getAxis", &ScriptEngine::api_getAxis);
 
     lua_setglobal(L, "Engine");
 }
@@ -202,6 +210,58 @@ int ScriptEngine::api_getAnimState(lua_State* L) {
     const char* state = o->stateMachine.currentStateName();
     if (state) lua_pushstring(L, state);
     else lua_pushnil(L);
+    return 1;
+}
+
+/*
+---------------------------------------------------------------------------
+Actions de jeu (input.json) : clavier et manette confondus
+---------------------------------------------------------------------------
+*/
+namespace {
+    // index de l action nommee a l argument arg, erreur Lua si inconnue
+    int actionArg(lua_State* L, const GameInput* in, int arg) {
+        const char* name = luaL_checkstring(L, arg);
+        int a = in ? in->find(name) : -1;
+        if (a < 0) luaL_error(L, Lang::tr("Unknown action: %s"), name);
+        return a;
+    }
+}
+
+int ScriptEngine::api_isActionDown(lua_State* L) {
+    const GameInput* in = selfFromUpvalue(L)->gameInput;
+    int a = actionArg(L, in, 1);
+    lua_pushboolean(L, in->isDown(a) ? 1 : 0);
+    return 1;
+}
+
+int ScriptEngine::api_wasActionPressed(lua_State* L) {
+    const GameInput* in = selfFromUpvalue(L)->gameInput;
+    int a = actionArg(L, in, 1);
+    lua_pushboolean(L, in->wasPressed(a) ? 1 : 0);
+    return 1;
+}
+
+int ScriptEngine::api_wasActionReleased(lua_State* L) {
+    const GameInput* in = selfFromUpvalue(L)->gameInput;
+    int a = actionArg(L, in, 1);
+    lua_pushboolean(L, in->wasReleased(a) ? 1 : 0);
+    return 1;
+}
+
+int ScriptEngine::api_getActionValue(lua_State* L) {
+    const GameInput* in = selfFromUpvalue(L)->gameInput;
+    int a = actionArg(L, in, 1);
+    lua_pushnumber(L, in->value(a));
+    return 1;
+}
+
+// getAxis("move_left", "move_right") : -1..1, analogique au stick
+int ScriptEngine::api_getAxis(lua_State* L) {
+    const GameInput* in = selfFromUpvalue(L)->gameInput;
+    int negative = actionArg(L, in, 1);
+    int positive = actionArg(L, in, 2);
+    lua_pushnumber(L, in->value(positive) - in->value(negative));
     return 1;
 }
 

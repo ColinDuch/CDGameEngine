@@ -372,6 +372,13 @@ void Application::saveScene() {
         }
 
         saveAnimMachines();
+
+        try {
+            gameInput.save((fs::path(currentProjectDir) / "input.json").string());
+        } catch (const std::exception& e) {
+            std::cerr << "[save] " << e.what() << std::endl;
+        }
+
         SceneSerializer::save(scenePath.string(), sceneObjects, availableMeshes, *camera, td, ed, mats, loadAnimations, notifiesData);
         std::cout << "[save] " << sceneObjects.size() << " objets -> "
                   << scenePath.string() << std::endl;
@@ -450,6 +457,19 @@ void Application::loadScene() {
 
         // --- Machines a etats (avant les objets, qui les referencent) ---
         loadAnimMachines();
+
+        // --- Actions de jeu : input.json, sinon celles par defaut ---
+        gameInput.resetDefaults();
+        const fs::path inputFile = fs::path(currentProjectDir) / "input.json";
+        std::error_code inputEc;
+        if (fs::exists(inputFile, inputEc)) {
+            try {
+                gameInput.load(inputFile.string());
+            } catch (const std::exception& e) {
+                std::cerr << "[load] " << e.what() << std::endl;
+                sceneMessage += std::string(" | ") + Lang::tr("Game input unreadable, defaults used");
+            }
+        }
 
         // Un mesh cassé fait sauter un objet : les index se decalent, il faut une table.
         std::vector<int> indexMap(scene.objects.size(), -1);

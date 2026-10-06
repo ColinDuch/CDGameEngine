@@ -393,3 +393,6 @@ Add condition=Ajouter une condition
 Add transition=Ajouter une transition
 Remove=Supprimer
 Delete this machine (Ctrl+Z to undo)=Supprimer cette machine (Ctrl+Z pour annuler)
+
+unknown action: %s=action inconnue : %s
+Game input unreadable, defaults used=Contrôles du jeu illisibles, valeurs par défaut utilisées

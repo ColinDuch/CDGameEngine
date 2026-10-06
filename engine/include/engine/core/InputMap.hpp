@@ -20,9 +20,6 @@ enum InputAction {
     ACTION_DESELECT,
     ACTION_FOCUS_SELECTION,
     ACTION_SNAP_MODIFIER,
-    ACTION_JUMP,
-    ACTION_INTERACT,
-    ACTION_ATTACK,
     ACTION_COUNT
 };
 
@@ -50,6 +47,12 @@ public:
     bool gamepadConnected() const { return padConnected; }
     const std::string& gamepadName() const { return padName; }
 
+    // etat de la manette lu cette image, nullptr si aucune
+    const GLFWgamepadstate* gamepadState() const { return padConnected ? &pad : nullptr; }
+
+    // valeur 0..1 d une liaison : touches, bouton et axe de manette
+    static float evaluate(const InputBinding& b, GLFWwindow* window, const GLFWgamepadstate* pad);
+
     InputBinding&       binding(int action)       { return bindings[action]; }
     const InputBinding& binding(int action) const { return bindings[action]; }
     void resetDefaults();
@@ -69,6 +72,7 @@ private:
     float values[ACTION_COUNT] = {};
     float previous[ACTION_COUNT] = {};
 
-    bool        padConnected = false;
+    bool padConnected = false;
+    GLFWgamepadstate pad{};
     std::string padName;
 };

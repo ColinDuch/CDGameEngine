@@ -63,6 +63,7 @@ void Application::run() {
         window->pollEvents();
 
         input.update(window->getHandle());
+        gameInput.update(window->getHandle(), input.gamepadState());
 
         // Demande de fermeture (croix ou Echap) : on l'annule et on demande confirmation.
         if (window->shouldClose() || window->shouldExit()) {
@@ -283,6 +284,7 @@ void Application::initScene() {
 
     scripts = std::make_unique<ScriptEngine>(sceneObjects);
     scripts->setWindow(window->getHandle());
+    scripts->setGameInput(&gameInput);
 
     orbitDistance = glm::length(camera->getPosition() - orbitTarget);
 
