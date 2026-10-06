@@ -14,6 +14,22 @@ set -u
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
 
+
+# --- Lance dans un terminal si on n en a pas (double-clic) ---
+if [ ! -t 1 ] && [ -z "${CDGE_IN_TERMINAL:-}" ]; then
+    export CDGE_IN_TERMINAL=1
+    SCRIPT="$(realpath "$0")"
+    for term in konsole gnome-terminal xfce4-terminal kitty alacritty xterm; do
+        if command -v "$term" >/dev/null 2>&1; then
+            case "$term" in
+                gnome-terminal) exec gnome-terminal -- "$SCRIPT" "$@" ;;
+                xfce4-terminal) exec xfce4-terminal -x "$SCRIPT" "$@" ;;
+                *)              exec "$term" -e "$SCRIPT" "$@" ;;
+            esac
+        fi
+    done
+fi
+
 BUILD_DIR="build-clang"
 LOG_DIR="logs"
 STAMP="$(date +%d-%m-%Y_%Hh%M)"
