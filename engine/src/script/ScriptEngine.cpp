@@ -223,7 +223,7 @@ namespace {
     int actionArg(lua_State* L, const GameInput* in, int arg) {
         const char* name = luaL_checkstring(L, arg);
         int a = in ? in->find(name) : -1;
-        if (a < 0) luaL_error(L, Lang::tr("Unknown action: %s"), name);
+        if (a < 0) luaL_error(L, Lang::tr("unknown action: %s"), name);
         return a;
     }
 }

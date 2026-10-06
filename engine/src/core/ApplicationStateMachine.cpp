@@ -184,7 +184,7 @@ void Application::drawStateMachinePanel() {
         ImGui::End();
         return;
     }
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Lang::tr("Delete this machine (ctrl+Z to undo)"));
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Lang::tr("Delete this machine (Ctrl+Z to undo)"));
 
     int users = 0;
     for (const auto& o : sceneObjects) {
