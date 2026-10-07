@@ -62,20 +62,20 @@ void InputMap::update(GLFWwindow* window) {
 }
 
 float InputMap::evaluate(const InputBinding& b, GLFWwindow* window, const GLFWgamepadstate* pad) {
-    float v= 0.0f;
-
+    float v = 0.0f;
     if (b.key >= 0 && glfwGetKey(window, b.key) == GLFW_PRESS) v = 1.0f;
     if (b.altKey >= 0 && glfwGetKey(window, b.altKey) == GLFW_PRESS) v = 1.0f;
+    return std::max(v, padValue(pad, b.padButton, b.padAxis, b.axisSign));
+}
 
-    if (pad) {
-        if (b.padButton >= 0 && pad->buttons[b.padButton] == GLFW_PRESS) v = 1.0f;
-        if (b.padAxis >= 0) {
-            // les gachettes reposent a -1, le signe s'en occupe.
-            float a = pad->axes[b.padAxis] * b.axisSign;
-            if (a > kDeadzone) {
-                v= std::max(v, (a - kDeadzone) / (1.0f - kDeadzone));
-            }
-        }
+float InputMap::padValue(const GLFWgamepadstate* pad, int button, int axis, float sign) {
+    if (!pad) return 0.0f;
+    float v= 0.0f;
+    if (button >= 0 && pad->buttons[button] == GLFW_PRESS) v = 1.0f;
+    if (axis >= 0) {
+        // les gachettes reposent a -1, le signe s en occupe
+        const float a = pad->axes[axis] * sign;
+        if (a > kDeadzone) v= std::max(v, (a - kDeadzone) / (1.0f - kDeadzone));
     }
     return v;
 }

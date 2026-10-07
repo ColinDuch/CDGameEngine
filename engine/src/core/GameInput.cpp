@@ -5,6 +5,7 @@
 #include <engine/scene/JsonWriter.hpp>
 
 #include <filesystem>
+#include <algorithm>
 #include <fstream>
 #include <stdexcept>
 
@@ -35,17 +36,68 @@ void GameInput::resetDefaults() {
     previous.assign(actions.size(), 0.0f);
 }
 
-void GameInput::update(GLFWwindow* window, const GLFWgamepadstate* pad) {
-    // l editeur peut ajouter ou retirer des actions : les tableaux suivent
-    if (values.size() != actions.size()) {
-        values.assign(actions.size(), 0.0f);
-        previous.assign(actions.size(), 0.0f);
+namespace {
+    bool keyHeld(GLFWwindow* w, int k) { return k >= 0 && glfwGetKey(w, k) == GLFW_PRESS; }
+
+    bool hasPadModifier(const InputBinding& b) { return b.padModButton >= 0 || b.padModAxis >= 0; }
+
+    // les deux liaisons utilisent-elles une meme touche ?
+    bool shareKey(const InputBinding& a, const InputBinding& b) {
+        for (int ka : { a.key, a.altKey }) {
+            if (ka >= 0 && (ka == b.key || ka == b.altKey)) return true;
+        }
+        return false;
     }
 
-    previous = values;
-    for (size_t i = 0; i < actions.size(); ++i) {
-        values[i] = InputMap::evaluate(actions[i].binding, window, pad);
+    // ... un meme bouton, ou un meme sens d un meme axe ?
+    bool sharePad(const InputBinding& a, const InputBinding& b) {
+        if (a.padButton >= 0 && a.padButton == b.padButton) return true;
+        return a.padAxis >= 0 && a.padAxis == b.padAxis && a.axisSign == b.axisSign;
     }
+}
+
+void GameInput::update(GLFWwindow* window, const GLFWgamepadstate* pad) {
+    const size_t n = actions.size();
+
+    // l editeur peut ajouter ou retirer des actions : les tableaux suivent
+    if (values.size() != n) {
+        values.assign(n, 0.0f);
+        previous.assign(n, 0.0f);
+    }
+    previous = values;
+
+    // 1. clavier et manette separes, chacun avec son modificateur
+    std::vector<float> keyPart(n, 0.0f), padPart(n, 0.0f);
+    for (size_t i = 0; i < n; ++i) {
+        const InputBinding& b = actions[i].binding;
+
+        const bool keyModOk = b.keyModifier < 0 || keyHeld(window, b.keyModifier);
+        if (keyModOk && (keyHeld(window, b.key) || keyHeld(window, b.altKey))) keyPart[i] = 1.0f;
+
+        const bool padModOk = !hasPadModifier(b)
+                           || InputMap::padValue(pad, b.padModButton, b.padModAxis, b.padModSign) > 0.5f;
+        if (padModOk) padPart[i] = InputMap::padValue(pad, b.padButton, b.padAxis, b.axisSign);
+    }
+
+    // 2. une combinaison active masque l action simple qui partage son entree :
+    //    RT + Y declenche "special_attack" mais pas aussi "special" (Y seul)
+    for (size_t s = 0; s < n; ++s) {
+        const InputBinding& simple = actions[s].binding;
+        for (size_t c = 0; c < n; ++c) {
+            if (c == s) continue;
+            const InputBinding& combo = actions[c].binding;
+
+            if (keyPart[s] > 0.0f && keyPart[c] > 0.0f && simple.keyModifier < 0
+                && combo.keyModifier >= 0 && shareKey(simple, combo))
+                keyPart[s] = 0.0f;
+
+            if (padPart[s] > 0.0f && padPart[c] > 0.0f && !hasPadModifier(simple)
+                && hasPadModifier(combo) && sharePad(simple, combo))
+                padPart[s] = 0.0f;
+        }
+    }
+
+    for (size_t i = 0; i < n; ++i) values[i] = std::max(keyPart[i], padPart[i]);
 }
 
 int GameInput::find(const std::string& name) const {
@@ -71,6 +123,10 @@ void GameInput::save(const std::string& path) const {
         w.key("padButton"); w.value(b.padButton);
         w.key("padAxis"); w.value(b.padAxis);
         w.key("axisSign"); w.value(static_cast<double>(b.axisSign));
+        w.key("keyModifier");  w.value(b.keyModifier);
+        w.key("padModButton"); w.value(b.padModButton);
+        w.key("padModAxis");   w.value(b.padModAxis);
+        w.key("padModSign");   w.value(static_cast<double>(b.padModSign));
         w.endObject();
     }
     w.endArray();
@@ -110,6 +166,10 @@ void GameInput::load(const std::string& path) {
         a.binding.padButton = static_cast<int>(num(o, "padButton", -1));
         a.binding.padAxis = static_cast<int>(num(o, "padAxis", -1));
         a.binding.axisSign = static_cast<float>(num(o, "axisSign", 1.0));
+        a.binding.keyModifier  = static_cast<int>(num(o, "keyModifier", -1));
+        a.binding.padModButton = static_cast<int>(num(o, "padModButton", -1));
+        a.binding.padModAxis   = static_cast<int>(num(o, "padModAxis", -1));
+        a.binding.padModSign   = static_cast<float>(num(o, "padModSign", 1.0));
         loaded.push_back(a);
     }
 

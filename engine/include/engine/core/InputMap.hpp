@@ -31,6 +31,11 @@ struct InputBinding {
     int   padButton = -1;       // GLFW_GAMEPAD_BUTTON_*
     int   padAxis   = -1;       // GLFW_GAMEPAD_AXIS_*
     float axisSign  = 1.0f;     // sens de l'axe (+1 ou -1)
+    // combinaisons (actions de jeu) : a maintenir en plus de l entree principale 
+    int keyModifier = -1;   // touche a maintenir pour key / altKey
+    int padModButton = -1;      //bouton a maintenir pour padButton / padAxis
+    int padModAxis = -1;    // ou axe (gachette, direction de stick)
+    float padModSign = 1.0f;
 };
 
 class InputMap {
@@ -52,6 +57,9 @@ public:
 
     // valeur 0..1 d une liaison : touches, bouton et axe de manette
     static float evaluate(const InputBinding& b, GLFWwindow* window, const GLFWgamepadstate* pad);
+
+    // 0..1 d un bouton et / ou d un axe de manette (zone morte comprise)
+    static float padValue(const GLFWgamepadstate* pad, int button, int axis, float sign);
 
     InputBinding&       binding(int action)       { return bindings[action]; }
     const InputBinding& binding(int action) const { return bindings[action]; }

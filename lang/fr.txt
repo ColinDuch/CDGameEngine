@@ -414,3 +414,7 @@ Right stick up=Stick droit en haut
 Right stick down=Stick droit en bas
 Left trigger=Gâchette gauche
 Right trigger=Gâchette droite
+
++ Key=+ Touche
++ Gamepad=+ Manette
+Hold this too (combination)=À maintenir en plus (combinaison)

@@ -36,7 +36,17 @@ namespace {
         return "?";
     }
 
-    enum Slot { SLOT_KEY = 0, SLOT_ALT_KEY, SLOT_PAD_BUTTON };
+    enum Slot { SLOT_KEY = 0, SLOT_ALT_KEY, SLOT_PAD_BUTTON, SLOT_KEY_MOD };
+    
+    bool hasPadMod(const InputBinding& b) { return b.padModButton >= 0 || b.padModAxis >= 0; }
+
+    std::string padModLabel(const InputBinding& b) {
+        if (b.padModButton >= 0) return InputMap::padButtonName(b.padModButton);
+        for (const auto& c : AXES) {
+            if (c.axis >= 0 && c.axis == b.padModAxis && c.sign == b.padModSign) return Lang::tr(c.label);
+        }
+        return Lang::tr("(none)");
+    }
 }
 
 void Application::drawGameInputPanel() {
@@ -68,7 +78,8 @@ void Application::drawGameInputPanel() {
             if (b >= 0) { pushUndo(); bind.padButton = b; gameRebindAction = -1; }
         } else if (k >= 0) {
             pushUndo();
-            (gameRebindSlot == SLOT_KEY ? bind.key : bind.altKey) = k;
+            int& field = (gameRebindSlot == SLOT_KEY) ? bind.key : (gameRebindSlot == SLOT_ALT_KEY) ? bind.altKey : bind.keyModifier;
+            field = k;
             gameRebindAction = -1;
         }
         ImGui::Separator();
@@ -77,12 +88,14 @@ void Application::drawGameInputPanel() {
     // ------------------------------------------ Actions
     int removeIndex = -1;
     const ImGuiTableFlags tf = ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders | ImGuiTableFlags_SizingStretchProp;
-    if (ImGui::BeginTable("##gameactions", 6, tf)) {
-        ImGui::TableSetupColumn(Lang::tr("Action"),    ImGuiTableColumnFlags_WidthStretch, 1.6f);
-        ImGui::TableSetupColumn(Lang::tr("Key"),       ImGuiTableColumnFlags_WidthStretch, 1.0f);
-        ImGui::TableSetupColumn(Lang::tr("Alt key"),   ImGuiTableColumnFlags_WidthStretch, 1.0f);
-        ImGui::TableSetupColumn(Lang::tr("Gamepad"),   ImGuiTableColumnFlags_WidthStretch, 1.2f);
+    if (ImGui::BeginTable("##gameactions", 8, tf)) {
+        ImGui::TableSetupColumn(Lang::tr("Action"), ImGuiTableColumnFlags_WidthStretch, 1.6f);
+        ImGui::TableSetupColumn(Lang::tr("Key"), ImGuiTableColumnFlags_WidthStretch, 1.0f);
+        ImGui::TableSetupColumn(Lang::tr("Alt key"), ImGuiTableColumnFlags_WidthStretch, 1.0f);
+        ImGui::TableSetupColumn(Lang::tr("+ Key"), ImGuiTableColumnFlags_WidthStretch, 1.0f);
+        ImGui::TableSetupColumn(Lang::tr("Gamepad"), ImGuiTableColumnFlags_WidthStretch, 1.2f);
         ImGui::TableSetupColumn(Lang::tr("Stick / trigger"), ImGuiTableColumnFlags_WidthStretch, 1.5f);
+        ImGui::TableSetupColumn(Lang::tr("+ Gamepad"), ImGuiTableColumnFlags_WidthStretch, 1.2f);
         ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed);
         ImGui::TableHeadersRow();
 
@@ -126,6 +139,7 @@ void Application::drawGameInputPanel() {
             };
             bindButton("##key", SLOT_KEY, InputMap::keyName(b.key), b.key);
             bindButton("##alt", SLOT_ALT_KEY, InputMap::keyName(b.altKey), b.altKey);
+            bindButton("##keymod", SLOT_KEY_MOD, InputMap::keyName(b.keyModifier), b.keyModifier);
             bindButton("##pad", SLOT_PAD_BUTTON, InputMap::padButtonName(b.padButton), b.padButton);
 
             // axe : choisi dans une liste, pas capture (un stick bouge tout seul)
@@ -142,6 +156,38 @@ void Application::drawGameInputPanel() {
                 }
                 ImGui::EndCombo();
             }
+
+            // modificateur manette : bouton ou axe a maintenir en plus
+            ImGui::TableNextColumn();
+            ImGui::SetNextItemWidth(-1.0f);
+            if (ImGui::BeginCombo("##padmod", padModLabel(b).c_str())) {
+                if (ImGui::Selectable(Lang::tr("(none)"), !hasPadMod(b)) && hasPadMod(b)) {
+                    pushUndo();
+                    b.padModButton = -1;
+                    b.padModAxis = -1;
+                }
+                for (int btn = 0; btn <= GLFW_GAMEPAD_BUTTON_LAST; ++btn) {
+                    const bool selected = b.padModButton == btn;
+                    if (ImGui::Selectable(InputMap::padButtonName(btn).c_str(), selected) && !selected) {
+                        pushUndo();
+                        b.padModButton = btn;
+                        b.padModAxis = -1;
+                    }
+                }
+                ImGui::Separator();
+                for (const auto& c : AXES) {
+                    if (c.axis < 0) continue;
+                    const bool selected = b.padModButton < 0 && c.axis == b.padModAxis && c.sign == b.padModSign;
+                    if (ImGui::Selectable(Lang::tr(c.label), selected) && !selected) {
+                        pushUndo();
+                        b.padModButton = -1;
+                        b.padModAxis = c.axis;
+                        b.padModSign = c.sign;
+                    }
+                }
+                ImGui::EndCombo();
+            }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Lang::tr("Hold this too (combination)"));
 
             ImGui::TableNextColumn();
             if (ImGui::SmallButton("X")) removeIndex = i;
