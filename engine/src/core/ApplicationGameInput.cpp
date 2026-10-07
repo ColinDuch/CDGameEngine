@@ -109,7 +109,7 @@ void Application::drawGameInputPanel() {
             ImGui::TableNextColumn();
             ImGui::SetNextItemWidth(-1.0f);
             ImGui::InputText("##name", &a.name);
-            if (ImGui::IsItemActivated()) pushUndo();
+            if (ImGui::IsItemActivated()) { pushUndo(); gameRenameOld = a.name; }
             if (ImGui::IsItemDeactivatedAfterEdit()) {
                 // vide ou en double : l'action deviendrait introuvable depuis Lua
                 std::string base = a.name.empty() ? std::string("Action") : a.name;
@@ -120,6 +120,7 @@ void Application::drawGameInputPanel() {
                     unique = base + "_" + std::to_string(n);
                 }
                 a.name = unique;
+                gameInput.renameAction(gameRenameOld, a.name);      // les sequences suivent
             }
 
             // un bouton par liaison :clic = capturer, clic droit = effacer
@@ -216,6 +217,137 @@ void Application::drawGameInputPanel() {
         pushUndo();
         gameInput.resetDefaults();
         gameRebindAction = -1;
+    }
+
+    // -------------------------------------- sequences
+    ImGui::Separator();
+    if (ImGui::CollapsingHeader(Lang::tr("Sequences"), ImGuiTreeNodeFlags_DefaultOpen)) {
+        ImGui::TextDisabled("%s", Lang::tr("Actions one after another: Engine.wasSequenceDone(\"name\")"));
+
+        std::vector<GameSequence>& sequences = gameInput.getSequences();
+        int removeSeq = -1;
+
+        // une liste deroulante d actions, en rouge si l action n existe plus
+        auto actionCombo = [&](const char* id, std::string& name) -> bool {
+            const bool missing = gameInput.find(name) < 0;
+            bool changed = false;
+            ImGui::SetNextItemWidth(130.0f);
+            if (missing) ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.35f, 0.35f, 1.0f));
+            const bool open = ImGui::BeginCombo(id, name.empty() ? Lang::tr("(none)") : name.c_str());
+            if (missing) ImGui::PopStyleColor();
+            if (open) {
+                for (const auto& a : actions) {
+                    if (ImGui::Selectable(a.name.c_str(), a.name == name) && a.name != name) {
+                        pushUndo();
+                        name = a.name;
+                        changed = true;
+                    }
+                }
+                ImGui::EndCombo();
+            }
+            return changed;
+        };
+
+        for (int s = 0; s < static_cast<int>(sequences.size()); ++s) {
+            GameSequence& sq = sequences[s];
+            ImGui::PushID(s);
+
+            // progression en direct : utile pour regler le delai
+            const int progress = gameInput.sequenceProgress(s);
+            const std::string label = sq.name + " (" + std::to_string(progress) + "/" + std::to_string(sq.steps.size()) + ")###seq";
+            const bool open = ImGui::TreeNode(label.c_str());
+            ImGui::SameLine();
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - 25.0f);
+            if (ImGui::SmallButton("X")) removeSeq = s;
+
+            if (open) {
+                ImGui::SetNextItemWidth(160.0f);
+                ImGui::InputText(Lang::tr("Name"), &sq.name);
+                if (ImGui::IsItemActivated()) pushUndo();
+                if (ImGui::IsItemDeactivatedAfterEdit()) {
+                    std::string base = sq.name.empty() ? std::string("sequence") : sq.name;
+                    std::string unique = base;
+                    for (int n = 1; ; ++n) {
+                        const int found = gameInput.findSequence(unique);
+                        if (found < 0 || found == s) break;
+                        unique = base + "_" + std::to_string(n);
+                    }
+                    sq.name = unique;
+                }
+
+                ImGui::SetNextItemWidth(160.0f);
+                ImGui::DragFloat(Lang::tr("Max delay between steps"), &sq.window, 0.01f, 0.05f, 2.0f, "%.2f s");
+                if (ImGui::IsItemActivated()) pushUndo();
+
+                int removeStep = -1, moveFrom = -1, moveTo = -1;
+                for (int t = 0; t < static_cast<int>(sq.steps.size()); ++t) {
+                    std::vector<std::string>& step = sq.steps[t];
+                    ImGui::PushID(t);
+
+                    // l etape en cours ressort
+                    if (t == progress) ImGui::TextColored(ImVec4(0.35f, 1.0f, 0.45f, 1.0f), "%d.", t +1);
+                    else ImGui::Text("%d.", t + 1);
+
+                    // plusieurs actions dans une etape = a tenir en meme temps
+                    int removeAct = -1;
+                    for (int k = 0; k < static_cast<int>(step.size()); ++k) {
+                        ImGui::PushID(k);
+                        ImGui::SameLine();
+                        if (k > 0) {ImGui::TextUnformatted("+"); ImGui::SameLine(); }
+                        actionCombo("##act", step[k]);
+                        if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) removeAct = k;
+                        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Lang::tr("Right-click to remove"));
+                        ImGui::PopID();
+                    }
+                    if (removeAct >= 0) {
+                        pushUndo();
+                        step.erase(step.begin() + removeAct);
+                    }
+
+                    ImGui::SameLine();
+                    if (ImGui::SmallButton("+")) {
+                        pushUndo();
+                        step.push_back(actions.empty() ? std::string() : actions[0].name);
+                    }
+                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Lang::tr("Add an action to hold at the same time"));
+                    ImGui::SameLine();
+                    if (ImGui::SmallButton("^") && t > 0) { moveFrom = t; moveTo = t -1; }
+                    ImGui::SameLine();
+                    if (ImGui::SmallButton("v") && t + 1 < static_cast<int>(sq.steps.size())) {moveFrom = t; moveTo = t + 1; }
+                    ImGui::SameLine();
+                    if (ImGui::SmallButton("X")) removeStep = t;
+
+                    ImGui::PopID();
+                }
+
+                if (removeStep >= 0) {
+                    pushUndo();
+                    sq.steps.erase(sq.steps.begin() + removeStep);
+                } else if (moveFrom >= 0) {
+                    pushUndo();
+                    std::swap(sq.steps[moveFrom], sq.steps[moveTo]);
+                }
+
+                if (ImGui::SmallButton(Lang::tr("Add step"))) {
+                    pushUndo();
+                    sq.steps.push_back({ actions.empty() ? std::string() : actions[0].name });
+                }
+                ImGui::TreePop();
+            }
+            ImGui::PopID();
+        }
+
+        if (removeSeq >= 0) {
+            pushUndo();
+            sequences.erase(sequences.begin() + removeSeq);
+        }
+
+        if (ImGui::Button(Lang::tr("Add sequence"))) {
+            pushUndo();
+            GameSequence sq;
+            for (int n = 1; gameInput.findSequence(sq.name) >= 0; ++n) sq.name = "sequence_" + std::to_string(n);
+            sequences.push_back(sq);
+        }
     }
 
     ImGui::End();

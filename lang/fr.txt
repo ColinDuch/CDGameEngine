@@ -418,3 +418,13 @@ Right trigger=Gâchette droite
 + Key=+ Touche
 + Gamepad=+ Manette
 Hold this too (combination)=À maintenir en plus (combinaison)
+
+# --- Sequences ---
+Sequences=Séquences
+Actions one after another: Engine.wasSequenceDone("name")=Des actions l'une après l'autre : Engine.wasSequenceDone("nom")
+Max delay between steps=Délai max entre les étapes
+Right-click to remove=Clic droit pour retirer
+Add an action to hold at the same time=Ajouter une action à tenir en même temps
+Add step=Ajouter une étape
+Add sequence=Ajouter une séquence
+unknown sequence: %s=séquence inconnue : %s

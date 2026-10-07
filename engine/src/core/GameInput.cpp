@@ -34,6 +34,8 @@ void GameInput::resetDefaults() {
 
     values.assign(actions.size(), 0.0f);
     previous.assign(actions.size(), 0.0f);
+    sequences.clear();      // un projet sans input.json part de zero
+    resizeState();
 }
 
 namespace {
@@ -65,6 +67,7 @@ void GameInput::update(GLFWwindow* window, const GLFWgamepadstate* pad) {
         previous.assign(n, 0.0f);
     }
     previous = values;
+    resizeState();
 
     // 1. clavier et manette separes, chacun avec son modificateur
     std::vector<float> keyPart(n, 0.0f), padPart(n, 0.0f);
@@ -98,6 +101,12 @@ void GameInput::update(GLFWwindow* window, const GLFWgamepadstate* pad) {
     }
 
     for (size_t i = 0; i < n; ++i) values[i] = std::max(keyPart[i], padPart[i]);
+
+    // 3. sequences, avec le temps reel ecoule depuis l image precedente
+    const double now = glfwGetTime();
+    const float dt = lastTime < 0.0 ? 0.0f : static_cast<float>(now - lastTime);
+    lastTime = now;
+    updateSequences(dt);
 }
 
 int GameInput::find(const std::string& name) const {
@@ -105,6 +114,79 @@ int GameInput::find(const std::string& name) const {
         if (actions[i].name == name) return static_cast<int>(i);
     }
     return -1;
+}
+
+void GameInput::resizeState() {
+    values.assign(actions.size(), 0.0f);
+    previous.assign(actions.size(), 0.0f);
+    consumed.assign(actions.size(), 0);
+    seqState.assign(sequences.size(), SequenceState{});
+}
+
+int GameInput::findSequence(const std::string& name) const {
+    for (size_t i = 0; i < sequences.size(); ++i) {
+        if (sequences[i].name == name) return static_cast<int>(i);
+    }
+    return -1;
+}
+
+void GameInput::renameAction(const std::string& from, const std::string& to) {
+    if (from.empty() || from == to) return;
+    for (auto& sq : sequences) {
+        for (auto& step : sq.steps) {
+            for (auto& name : step) {
+                if (name == from) name = to;
+            }
+        }
+    }
+}
+
+// une etape est validee quand toutes ses actions sont tenues
+// et qu au moins l une d elles vient d etre appuyee : bas tenu + avant appuye = diagonale
+bool GameInput::stepMatched(const std::vector<std::string>& step) const {
+    if (step.empty()) return false;
+    bool fresh = false;
+    for (const auto& name : step) {
+        const int a = find(name);
+        if (a < 0 || !isDown(a)) return false;
+        if (pressedRaw(a)) fresh = true;
+    }
+    return fresh;
+}
+
+void GameInput::updateSequences(float dt) {
+    if (seqState.size() != sequences.size()) seqState.assign(sequences.size(), SequenceState{});
+
+    for (size_t i = 0; i < sequences.size(); ++i) {
+        const GameSequence& sq = sequences[i];
+        SequenceState& st = seqState[i];
+        st.done = false;
+        if (sq.steps.empty()) continue;
+
+        // trop lent : on repart du debut
+        if (st.progress > 0) {
+            st.timer += dt;
+            if (st.timer > sq.window) st.progress = 0;
+        }
+
+        if (stepMatched(sq.steps[st.progress])) {
+            ++st.progress;
+            st.timer = 0.0f;
+        } else if (st.progress > 0 && stepMatched(sq.steps[0])) {
+            // la premiere etape refaite : nouveau depart plutot qu un echec
+            st.progress = 1;
+            st.timer = 0.0f;
+        }
+
+        if (st.progress >= static_cast<int>(sq.steps.size())) {
+            st.done = true;
+            st.progress = 0;
+            for (const auto& name : sq.steps.back()) {
+                const int a = find(name);
+                if (a >= 0) consumed[a] = 1;
+            }
+        }
+    }
 }
 
 void GameInput::save(const std::string& path) const {
@@ -127,6 +209,24 @@ void GameInput::save(const std::string& path) const {
         w.key("padModButton"); w.value(b.padModButton);
         w.key("padModAxis");   w.value(b.padModAxis);
         w.key("padModSign");   w.value(static_cast<double>(b.padModSign));
+        w.endObject();
+    }
+    w.endArray();
+
+    w.key("sequences");
+    w.beginArray();
+    for (const auto& sq : sequences) {
+        w.beginObject();
+        w.key("name");   w.value(sq.name);
+        w.key("window"); w.value(static_cast<double>(sq.window));
+        w.key("steps");
+        w.beginArray();
+        for (const auto& step : sq.steps) {
+            w.beginArray();
+            for (const auto& name : step) w.value(name);
+            w.endArray();
+        }
+        w.endArray();
         w.endObject();
     }
     w.endArray();
@@ -173,8 +273,30 @@ void GameInput::load(const std::string& path) {
         loaded.push_back(a);
     }
 
-    // on ne remplace qu une fois tout lu : un fichier casse ne vide pas les actions
+    // sequences : absentes des anciens fichiers
+    std::vector<GameSequence> loadedSeq;
+    if (root.has("sequences") && root["sequences"].isArray()) {
+        for (const auto& o : root["sequences"].asArray()) {
+            if (!o.has("name") || !o["name"].isString()) continue;
+            GameSequence sq;
+            sq.name = o["name"].asString();
+            sq.window = static_cast<float>(num(o, "window", 0.35));
+            if (o.has("steps") && o["steps"].isArray()) {
+                for (const auto& st : o["steps"].asArray()) {
+                    std::vector<std::string> step;
+                    if (st.isArray()) {
+                        for (const auto& n : st.asArray()) {
+                            if (n.isString()) step.push_back(n.asString());
+                        }
+                    }
+                    sq.steps.push_back(step);
+                }
+            }
+            loadedSeq.push_back(sq);
+        }
+    }
+
     actions = std::move(loaded);
-    values.assign(actions.size(), 0.0f);
-    previous.assign(actions.size(), 0.0f);
+    sequences = std::move(loadedSeq);
+    resizeState();
 }

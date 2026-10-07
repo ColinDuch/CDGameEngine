@@ -63,6 +63,7 @@ private:
     static int api_wasActionReleased(lua_State* L);
     static int api_getActionValue(lua_State* L);
     static int api_getAxis(lua_State* L);
+    static int api_wasSequenceDone(lua_State* L);
 
     std::vector<Instance> instances;
     std::vector<std::shared_ptr<SceneObject>>& objects;

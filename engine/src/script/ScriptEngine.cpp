@@ -108,6 +108,7 @@ void ScriptEngine::registerApi(lua_State* L) {
     reg("wasActionReleased", &ScriptEngine::api_wasActionReleased);
     reg("getActionValue", &ScriptEngine::api_getActionValue);
     reg("getAxis", &ScriptEngine::api_getAxis);
+    reg("wasSequenceDone", &ScriptEngine::api_wasSequenceDone);
 
     lua_setglobal(L, "Engine");
 }
@@ -262,6 +263,16 @@ int ScriptEngine::api_getAxis(lua_State* L) {
     int negative = actionArg(L, in, 1);
     int positive = actionArg(L, in, 2);
     lua_pushnumber(L, in->value(positive) - in->value(negative));
+    return 1;
+}
+
+// wasSequnceDone("exemple") : vrai a l image ou la derniere etape est faite
+int ScriptEngine::api_wasSequenceDone(lua_State* L) {
+    const GameInput* in = selfFromUpvalue(L)->gameInput;
+    const char* name = luaL_checkstring(L, 1);
+    const int s = in ? in->findSequence(name) : -1;
+    if (s < 0) return luaL_error(L, Lang::tr("unknown sequence: %s"), name);
+    lua_pushboolean(L, in->sequenceDone(s) ? 1 : 0);
     return 1;
 }
 

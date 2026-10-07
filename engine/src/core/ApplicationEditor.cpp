@@ -817,6 +817,7 @@ Application::Snapshot Application::captureState() {
     s.shininess = shininess;
     for (const auto& m : animMachines) s.machines.push_back({ m, *m});
     s.gameActions = gameInput.getActions();
+    s.gameSequences = gameInput.getSequences();
     return s;
 }
 
@@ -894,6 +895,7 @@ void Application::applySnapshot(const Snapshot& s) {
     smUndoRef = nullptr; // le panneau reprend sa copie de reference sans creer d entree
     smRenameTarget = nullptr;   // et recharge le nom affiche
     gameInput.getActions() = s.gameActions;
+    gameInput.getSequences() = s.gameSequences;
 }
 
 void Application::pushUndo() {

@@ -333,6 +333,7 @@ private:
         float lightIntensity = 1.0f, ambientStrength = 0.2f, shininess = 32.0f;
         std::vector<MachineState> machines;
         std::vector<GameAction> gameActions;
+        std::vector<GameSequence> gameSequences;
     };
 
     std::vector<Snapshot> undoStack, redoStack;
@@ -375,6 +376,7 @@ private:
     void drawGameInputPanel();
     int gameRebindAction = -1;      // action de jeu en cours de capture (-1 = aucune)
     int gameRebindSlot = 0;     // 0 = touche, 1 = seconde touche, 2 = button manette
+    std::string gameRenameOld;      // nom d une action avant son renomage
     bool capturingKey() const { return rebindAction >= 0 || gameRebindAction >= 0; }
     bool frustumCullingEnabled = true;
     int  culledCount = 0;
