@@ -32,8 +32,6 @@ void GameInput::resetDefaults() {
     add("attack", GLFW_KEY_F, GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER, -1, 1.0f);
     add("pause", GLFW_KEY_ESCAPE, GLFW_GAMEPAD_BUTTON_START, -1, 1.0f);
 
-    values.assign(actions.size(), 0.0f);
-    previous.assign(actions.size(), 0.0f);
     sequences.clear();      // un projet sans input.json part de zero
     resizeState();
 }
@@ -63,11 +61,10 @@ void GameInput::update(GLFWwindow* window, const GLFWgamepadstate* pad) {
 
     // l editeur peut ajouter ou retirer des actions : les tableaux suivent
     if (values.size() != n) {
-        values.assign(n, 0.0f);
-        previous.assign(n, 0.0f);
+        resizeState();
     }
-    previous = values;
-    resizeState();
+    previous= values;
+    std::fill(consumed.begin(), consumed.end(), 0);
 
     // 1. clavier et manette separes, chacun avec son modificateur
     std::vector<float> keyPart(n, 0.0f), padPart(n, 0.0f);

@@ -54,7 +54,7 @@ void Application::drawGameInputPanel() {
         gameRebindAction = -1;      // fermer le panneau annule une capture en cours
         return;
     }
-    ImGui::Begin(trWin("Game Controls", "gamecontrols").c_str(), &showGameInputPanel, panelFlags);
+    ImGui::Begin(trWin("Game controls", "gamecontrols").c_str(), &showGameInputPanel, panelFlags);
 
     std::vector<GameAction>& actions = gameInput.getActions();
 
