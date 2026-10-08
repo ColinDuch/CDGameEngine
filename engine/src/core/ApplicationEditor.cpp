@@ -257,6 +257,26 @@ namespace{
         t = tMin;
         return true;
     }
+
+    // Moller-Trumbore : rayon contre triangle, des deux cotes
+    bool rayTriangle(const glm::vec3& o, const glm::vec3& d, const glm::vec3& a, const glm::vec3& b, const glm::vec3& c, float& t) {
+        const glm::vec3 e1 = b - a;
+        const glm::vec3 e2 = c - a;
+        const glm::vec3 p = glm::cross(d, e2);
+        const float det = glm::dot(e1, p);
+        if (std::abs(det) < 1e-12f) return false;       // rayon parallele au triangle 
+
+        const float inv = 1.0f / det;
+        const glm::vec3 s = o - a;
+        const float u = glm::dot(s, p) * inv;       // coordonnees dasn le triangle 
+        if (u < 0.0f || u > 1.0f) return false;
+        const glm::vec3 q = glm::cross(s, e1);
+        const float v =glm::dot(d, q) * inv;
+        if (v < 0.0f || u + v > 1.0f) return false;
+
+        t = glm::dot(e2, q) * inv;
+        return t > 0.0f;        // devantla camera seulement
+    }
 }
 
 bool Application::mouseRay(glm::vec3& origin, glm::vec3& dir) const {
@@ -294,10 +314,25 @@ int Application::pickObject(const glm::vec3& origin, const glm::vec3& dir) const
         // c est directement la distance dpuis la camera, quelle que soit l echelle 
         float t;
         if (!rayBox(localOrigin, localDir, mesh.getBoundsMin(), mesh.getBoundsMax(), t)) continue;
-        if (t < bestDist) {
+        if (t >= bestDist) continue;    // meme sa boite est derriere un objet deja touche
+        
+        const auto& verts = mesh.getVerticesCPU();
+        const auto& idx = mesh.getIndicesCPU();
+        if (idx.empty()) {      // pas de geometrie en memoire : la boite suffira
             bestDist = t;
             best = i;
+            continue;
         }
+
+        // precision : le triangle touche le plus proche
+        for (size_t k = 0; k + 2 < idx.size(); k += 3) {
+            float tt;
+            if (rayTriangle(localOrigin, localDir, verts[idx[k]].position, verts[idx[k + 1]].position, verts[idx[k + 2]].position, tt) && tt < bestDist) {
+                bestDist = tt;
+                best = i;
+            }
+        }
+        //dans la boite mais entre les triangles : aucun ne touche, rien ne change 
     }
     return best;
 }
