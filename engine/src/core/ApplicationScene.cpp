@@ -989,6 +989,7 @@ void Application::startPlay() {
     selectedObjectIndex = -1;
 
     isPlaying = true;
+    physics.beginPlay();
 
     for (auto& o : sceneObjects) o->stateMachine.reset();
 
@@ -1007,6 +1008,7 @@ void Application::startPlay() {
 
 void Application::stopPlay() {
     isPlaying = false;
+    physics.endPlay();
 
     // Restauration : l'etat d'edition doit etre intact.
     for (size_t i = 0; i < sceneObjects.size() && i < playSnapshot.size(); ++i) {

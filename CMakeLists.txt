@@ -39,6 +39,28 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(glm)
 
+
+# --- Jolt Physics : moteur physique ---
+set(ENABLE_ALL_WARNINGS OFF CACHE BOOL "" FORCE)        # pas de -Werror chez Jolt
+set(GENERATE_DEBUG_SYMBOLS OFF CACHE BOOL "" FORCE)
+set(INTERPROCEDURAL_OPTIMIZATION OFF CACHE BOOL "" FORCE)
+set(CPP_RTTI_ENABLED ON CACHE BOOL "" FORCE)             # comme le reste du moteur
+set(CPP_EXCEPTIONS_ENABLED ON CACHE BOOL "" FORCE)
+set(JPH_USE_VK OFF CACHE BOOL "" FORCE)                  # pas de calcul GPU :
+set(JPH_USE_DX12 OFF CACHE BOOL "" FORCE)                # il demanderait dxc pour
+set(JPH_USE_MTL OFF CACHE BOOL "" FORCE)                 # compiler ses propres shaders
+set(JPH_USE_CPU_COMPUTE OFF CACHE BOOL "" FORCE)
+
+FetchContent_Declare(
+    JoltPhysics
+    GIT_REPOSITORY https://github.com/jrouwe/JoltPhysics.git
+    GIT_TAG v5.6.0
+    GIT_SHALLOW TRUE
+    SOURCE_SUBDIR Build          # le CMakeLists de Jolt est dans Build/
+)
+
+FetchContent_MakeAvailable(JoltPhysics)
+
 set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/engine/third_party/imgui)
 set(IMGUIZMO_DIR ${CMAKE_SOURCE_DIR}/engine/third_party/ImGuizmo/src)
 set(IMGUIFILEDIALOG_DIR ${CMAKE_SOURCE_DIR}/engine/third_party/ImGuiFileDialog)

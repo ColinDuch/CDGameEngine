@@ -5,6 +5,8 @@
 #include <engine/core/InputMap.hpp>
 #include <engine/core/GameInput.hpp>
 
+#include <engine/physics/PhysicsWorld.hpp>
+
 #include <engine/renderer/VulkanInstance.hpp>
 #include <engine/renderer/Surface.hpp>
 #include <engine/renderer/VulkanDevice.hpp>
@@ -368,6 +370,7 @@ private:
     bool orbitAroundSelection = true;
     InputMap input;
     GameInput gameInput;    // actions de jeu du projet (input.json)
+    PhysicsWorld physics;   // Jolt : initialise avec l application
     bool showInputPanel = false;
     int  rebindAction = -1;    // action en cours de reassignation (-1 = aucune)
     bool rebindPad = false;    // true = on attend un bouton de manette

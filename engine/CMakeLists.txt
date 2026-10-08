@@ -14,6 +14,8 @@ add_library(engine STATIC
 
     src/script/ScriptEngine.cpp
 
+    src/physics/PhysicsWorld.cpp
+
     src/renderer/VulkanInstance.cpp
     src/renderer/Surface.cpp
     src/renderer/VulkanDevice.cpp
@@ -68,6 +70,7 @@ target_link_libraries(engine
 
 target_include_directories(engine PUBLIC ${LUA_INCLUDE_DIR})
 target_link_libraries(engine PUBLIC ${LUA_LIBRARIES})
+target_link_libraries(engine PRIVATE Jolt)    # seul le moteur voit Jolt, pas le jeu
 
 target_compile_features(engine PUBLIC cxx_std_20)
 

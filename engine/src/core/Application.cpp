@@ -391,6 +391,7 @@ void Application::drawFrame() {
     float deltaTime = calculateDeltaTime();
     updateCamera(deltaTime);
     if (isPlaying) updateGameplay(deltaTime);
+    if (isPlaying) physics.step(deltaTime);     // apres les scripts, avant les animations
     updateAnimations(deltaTime);
     updateUniformBuffer();
 
