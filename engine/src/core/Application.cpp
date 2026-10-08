@@ -391,7 +391,11 @@ void Application::drawFrame() {
     float deltaTime = calculateDeltaTime();
     updateCamera(deltaTime);
     if (isPlaying) updateGameplay(deltaTime);
-    if (isPlaying) physics.step(deltaTime);     // apres les scripts, avant les animations
+    if (isPlaying) {
+        physics.step(deltaTime);    // apres les scripts, avant les animations
+        // les objets suivent leurs corps physique
+        for (auto& o : sceneObjects) physics.getTransform(o->id, o->position, o->orientation);
+    }
     updateAnimations(deltaTime);
     updateUniformBuffer();
 

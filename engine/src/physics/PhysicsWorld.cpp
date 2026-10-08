@@ -7,9 +7,13 @@
 #include <Jolt/Core/JobSystemThreadPool.h>
 #include <Jolt/Physics/PhysicsSettings.h>
 #include <Jolt/Physics/PhysicsSystem.h>
+#include <Jolt/Physics/Body/BodyCreationSettings.h>
+#include <Jolt/Physics/Collision/Shape/BoxShape.h>
+#include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
 
 #include <algorithm>
 #include <thread>
+#include <unordered_map>
 #include <iostream>
 
 /*
@@ -56,6 +60,10 @@ namespace {
     };
 
     constexpr float FIXED_STEP = 1.0f / 60.0f;  // la physique avance par pas fixes
+
+    // glm <-> Jolt : memes conventions, seul l ordre du quaternion differe
+    JPH::Vec3 toJolt(const glm::vec3& v) { return JPH::Vec3(v.x, v.y, v.z); }
+    JPH::Quat toJolt(const glm::quat& q) { return JPH::Quat(q.x, q.y, q.z, q.w); }
 }
 
 struct PhysicsWorld::Impl {
@@ -73,6 +81,7 @@ struct PhysicsWorld::Impl {
     float accumulator = 0.0f;   // temps pas encore simule
     int steps = 0;      // pas simules depuis le play
     float simulated = 0.0f;     // temps simule depuis le play
+    std::unordered_map<uint32_t, JPH::BodyID> bodies;   // id d objet -> corps Jolt
 
     Impl() {
         system.Init(10240, 0, 65536, 10240, broadPhaseLayers, objectVsBroadPhase, objectVsObject);
@@ -92,6 +101,7 @@ PhysicsWorld::PhysicsWorld() {
 }
 
 PhysicsWorld::~PhysicsWorld() {
+    clear();
     impl.reset();       // les objets Jolt avant de desenregistrer les types
 
     JPH::UnregisterTypes();
@@ -108,6 +118,7 @@ void PhysicsWorld::beginPlay() {
 }
 
 void PhysicsWorld::endPlay() {
+    clear();
     std::cout << "[physics] " << impl->steps << " pas simules en " << impl->simulated << " s" << std::endl;
 }
 
@@ -120,4 +131,52 @@ void PhysicsWorld::step(float dt) {
         impl->steps++;
         impl->simulated += FIXED_STEP;
     }
+}
+
+void PhysicsWorld::addBox(uint32_t objectId, const glm::vec3& position, const glm::quat& rotation, const glm::vec3& center, const glm::vec3& halfExtent, bool dynamic) {
+    // une boite plate (un plan) n a pas d epaisseur : on lui en donne un minimum
+    const glm::vec3 half = glm::max(glm::abs(halfExtent), glm::vec3(0.01f));
+    const float radius = std::min(JPH::cDefaultConvexRadius, std::min(half.x, std::min(half.y, half.z)));
+
+    // la boite est centree sur le mesh, pas forcement sur l origine de l objet (ex: pieds du personnage)
+    JPH::RotatedTranslatedShapeSettings shape(toJolt(center), JPH::Quat::sIdentity(), new JPH::BoxShapeSettings(toJolt(half), radius));
+    JPH::ShapeSettings::ShapeResult result = shape.Create();
+    if (result.HasError()) {
+        std::cerr << "[physics] forme invalide : " << result.GetError().c_str() << std::endl;
+        return;
+    }
+
+    JPH::BodyCreationSettings settings(result.Get(), JPH::RVec3(toJolt(position)), toJolt(rotation).Normalized(),
+        dynamic ? JPH::EMotionType::Dynamic : JPH::EMotionType::Static,
+        dynamic ? Layers::MOVING : Layers::STATIC);
+    
+    JPH::BodyInterface& bodiesApi = impl->system.GetBodyInterface();
+    const JPH::BodyID id = bodiesApi.CreateAndAddBody(settings, dynamic ? JPH::EActivation::Activate : JPH::EActivation::DontActivate);
+
+    if (id.IsInvalid()) {
+        std::cerr << "[physics] trop de corps" << std::endl;
+        return;
+    }
+    impl->bodies[objectId] = id;
+}
+
+bool PhysicsWorld::getTransform(uint32_t objectId, glm::vec3& position, glm::quat& rotation) const {
+    const auto it = impl->bodies.find(objectId);
+    if (it == impl->bodies.end()) return false;
+
+    JPH::RVec3 p;
+    JPH::Quat q;
+    impl->system.GetBodyInterface().GetPositionAndRotation(it->second, p, q);
+    position = glm::vec3(static_cast<float>(p.GetX()), static_cast<float>(p.GetY()), static_cast<float>(p.GetZ()));
+    rotation = glm::quat(q.GetW(), q.GetX(), q.GetY(), q.GetZ());
+    return true;
+}
+
+void PhysicsWorld::clear() {
+    JPH::BodyInterface& bodiesApi = impl->system.GetBodyInterface();
+    for (const auto& [objectId, id] : impl->bodies) {
+        bodiesApi.RemoveBody(id);       // retire de la simulation
+        bodiesApi.DestroyBody(id);      // puis libere
+    }
+    impl->bodies.clear();
 }
