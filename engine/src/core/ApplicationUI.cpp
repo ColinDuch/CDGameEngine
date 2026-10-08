@@ -633,6 +633,7 @@ void Application::buildUI() {
         updateBrush();
         drawSunGizmo();
         drawGizmo();
+        updateViewportPick();   // apres le gizmo : il a la priorite sur le clic
         drawGameInputPanel();
         drawInputPanel();
         drawSettingsPanel();

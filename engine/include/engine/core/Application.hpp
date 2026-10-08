@@ -183,6 +183,10 @@ private:
 
     bool isSelected(int i) const;
     void selectObject(int i, bool additive, bool range);
+    // --- selction dans la scne ---
+    bool mouseRay(glm::vec3& origin, glm::vec3& dir) const;     // rayon camera -> curseur
+    int pickObject(const glm::vec3& origin, const glm::vec3& dir) const;    // -1 si rien
+    void updateViewportPick();      // clic gauche dans la scene 
     void duplicateSelection();
     void deleteSelection();
 

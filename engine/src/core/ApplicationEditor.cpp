@@ -237,6 +237,90 @@ void Application::selectObject(int i, bool additive, bool range) {
     terrainSelected = false;
 }
 
+namespace{
+    // rayon contre boite alignee sur les axes (methodes des "slabs")
+    // t = position du point d entree le long du rayon
+    bool rayBox(const glm::vec3& o, const glm::vec3& d, const glm::vec3& bmin, const glm::vec3& bmax, float& t) {
+        float tMin = 0.0f, tMax = 1e30f;
+        for (int a = 0; a < 3; ++a) {
+            if (std::abs(d[a]) < 1e-8f) {
+                if (o[a] < bmin[a] || o[a] > bmax[a]) return false;     // parallele et a cote
+                continue;
+            }
+            float t1 = (bmin[a] - o[a]) / d[a];
+            float t2 = (bmax[a] - o[a]) / d[a];
+            if (t1 > t2) std::swap(t1, t2);
+            tMin = std::max(tMin, t1);
+            tMax = std::min(tMax, t2);
+            if (tMin > tMax) return false;
+        }
+        t = tMin;
+        return true;
+    }
+}
+
+bool Application::mouseRay(glm::vec3& origin, glm::vec3& dir) const {
+    const ImGuiIO& io = ImGui::GetIO();
+    if (!ImGui::IsMousePosValid() || io.DisplaySize.x <= 0.0f || io.DisplaySize.y <= 0.0f) return false;
+
+    // du pixel a l ecran [-1, 1], puis retour dans le monde par l inverse de la camera
+    const glm::vec2 ndc(2.0f * io.MousePos.x / io.DisplaySize.x - 1.0f, 2.0f * io.MousePos.y / io.DisplaySize.y - 1.0f);
+    const glm::mat4 invVP = glm::inverse(projectionMatrix * camera->getViewMatrix());
+    glm::vec4 pNear = invVP * glm::vec4(ndc.x, ndc.y, 0.0f, 1.0f);
+    glm::vec4 pFar = invVP * glm::vec4(ndc.x, ndc.y, 1.0f, 1.0f);
+    pNear /= pNear.w;
+    pFar /= pFar.w;
+
+    origin = glm::vec3(pNear);
+    dir = glm::normalize(glm::vec3(pFar - pNear));
+    return true;
+}
+
+int Application::pickObject(const glm::vec3& origin, const glm::vec3& dir) const {
+    int best = -1;
+    float bestDist = 1e30f;
+
+    for (int i = 0; i < static_cast<int>(sceneObjects.size()); ++i) {
+        const auto& o = sceneObjects[i];
+        if (o->meshIndex < 0 || o->meshIndex >= static_cast<int>(availableMeshes.size())) continue;
+        const Mesh& mesh = *availableMeshes[o->meshIndex];
+
+        // le rayon passe dans le repere de l objet, ou sa boite est alignee sur les axes
+        const glm::mat4 inv = glm::inverse(o->getModelMatrix());
+        const glm::vec3 localOrigin = glm::vec3(inv * glm::vec4(origin, 1.0f));
+        const glm::vec3 localDir = glm::vec3(inv * glm::vec4(dir, 0.0f));       // non normalise : voir plus bas
+
+        // localDir n etant pas renormalise, t designe le meme point qu en monde :
+        // c est directement la distance dpuis la camera, quelle que soit l echelle 
+        float t;
+        if (!rayBox(localOrigin, localDir, mesh.getBoundsMin(), mesh.getBoundsMax(), t)) continue;
+        if (t < bestDist) {
+            bestDist = t;
+            best = i;
+        }
+    }
+    return best;
+}
+
+void Application::updateViewportPick() {
+    if (isPlaying || sculptEnabled || window->isCursorLocked()) return;
+
+    const ImGuiIO& io = ImGui::GetIO();
+    if (io.WantCaptureMouse || !ImGui::IsMouseClicked(ImGuiMouseButton_Left)) return;
+    if (ImGuizmo::IsOver() || ImGuizmo::IsUsing()) return;      // ce clic est pour le gizmo
+
+    glm::vec3 origin, dir;
+    if (!mouseRay(origin, dir)) return;
+
+    const int hit = pickObject(origin, dir);
+    if (hit >= 0) {
+        selectObject(hit, io.KeyCtrl, false);   // Ctrl : ajoute ou retire
+    } else if (!io.KeyCtrl) {
+        selectedObjects.clear();    // clic dans le vide : on deselectionne
+        selectedObjectIndex = -1;
+    }
+}
+
 uint32_t Application::claimObjectId(uint32_t wanted) {
     // 0 ou deja pris (fichier modifie a la main) : on en donne un neuf
     if (wanted == 0 || indexOfObject(wanted) >= 0) return newObjectId();
@@ -570,16 +654,9 @@ void Application::updateBrush() {
         if (brushRadius > 200.0f) brushRadius = 200.0f;
     }
 
-    glm::vec2 ndc(2.0f * io.MousePos.x / width - 1.0f,
-                  2.0f * io.MousePos.y / height - 1.0f);
-    glm::mat4 view = camera->getViewMatrix();
-    glm::mat4 invVP = glm::inverse(projectionMatrix * view);
-    glm::vec4 pNear = invVP * glm::vec4(ndc.x, ndc.y, 0.0f, 1.0f);
-    glm::vec4 pFar  = invVP * glm::vec4(ndc.x, ndc.y, 1.0f, 1.0f);
-    pNear /= pNear.w;
-    pFar  /= pFar.w;
-    glm::vec3 rayOrigin(pNear);
-    glm::vec3 rayDir = glm::normalize(glm::vec3(pFar - pNear));
+    glm::vec3 rayOrigin, rayDir;
+    if (!mouseRay(rayOrigin, rayDir)) return;
+    glm::mat4 view = camera->getViewMatrix();   // encore utilise pour dessiner le cercle du pinceau
 
     // Terrain transforme : on passe le rayon en espace LOCAL du terrain.
     glm::mat4 terrainModel = terrain->getModelMatrix();
