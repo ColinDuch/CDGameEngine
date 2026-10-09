@@ -103,6 +103,8 @@ void SceneSerializer::save(const std::string& path,
         w.key("parent"); w.value(static_cast<double>(obj->parent));
         w.key("name"); w.value(obj->name);
         w.key("id"); w.value(static_cast<double>(obj->id));
+        w.key("body"); w.value(std::string(SceneObject::bodyTypeName(obj->bodyType)));
+        w.key("mass"); w.value(static_cast<double>(obj->mass));
         w.key("animClip"); w.value(clipName);
         w.key("animSpeed"); w.value(static_cast<double>(obj->animSpeed));
         w.key("animLoop"); w.value(static_cast<double>(obj->animLoop ?1 : 0));
@@ -239,11 +241,12 @@ SceneData SceneSerializer::load(const std::string& path) {
             data.metallic  = o.has("metallic")  ? static_cast<float>(o["metallic"].asDouble())  : 0.0f;
             data.roughness = o.has("roughness") ? static_cast<float>(o["roughness"].asDouble()) : 0.5f;
             data.worldUvScale = o.has("worldUvScale") ? static_cast<float>(o["worldUvScale"].asDouble()) : 0.0f;
-            data.materialIndex = o.has("materialIndex")
-                ? static_cast<int>(o["materialIndex"].asDouble()) : -1;
+            data.materialIndex = o.has("materialIndex") ? static_cast<int>(o["materialIndex"].asDouble()) : -1;
             data.parent = o.has("parent") ? static_cast<int>(o["parent"].asDouble()) : -1;
             data.name = o.has("name") ? o["name"].asString() : std::string("");
             data.id = (o.has("id") && o["id"].isNumber()) ? static_cast<uint32_t>(o["id"].asDouble()) : 0;
+            data.bodyType = SceneObject::bodyTypeFromName(o.has("body") && o["body"].isString() ? o["body"].asString() : "");
+            data.mass = (o.has("mass") && o["mass"].isNumber()) ? static_cast<float>(o["mass"].asDouble()) : 1.0f;
             data.animClipName = o.has("animClip") ? o["animClip"].asString() : std::string("");
             data.animSpeed = o.has("animSpeed") ? static_cast<float>(o["animSpeed"].asDouble()) : 1.0f;
             data.animLoop = o.has("animLoop") ? (o["animLoop"].asDouble() != 0.0) : true;

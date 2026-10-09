@@ -33,6 +33,8 @@ struct SceneObjectData {
     int parent = -1;
     std::string name;
     uint32_t id = 0;    // 0 = absent du fichier (ancienne scene)
+    SceneObject::BodyType bodyType = SceneObject::BodyType::None;
+    float mass = 1.0f;
     std::string animClipName; // nom du clip pas son index car ils peuvent bouger
     float animSpeed = 1.0f;
     bool animLoop = true;

@@ -529,15 +529,15 @@ void Application::loadScene() {
             newObject->scale    = objData.scale;
             newObject->meshIndex = meshIndex;
             newObject->id = claimObjectId(objData.id);
-            newObject->name = objData.name.empty()
-                ? ("Object " + std::to_string(sceneObjects.size())) : objData.name;
+            newObject->bodyType = objData.bodyType;
+            newObject->mass = objData.mass;
+            newObject->name = objData.name.empty() ? ("Object " + std::to_string(sceneObjects.size())) : objData.name;
             newObject->metallic  = objData.metallic;
             newObject->roughness = objData.roughness;
             newObject->worldUvScale = objData.worldUvScale;
             newObject->scriptPath = objData.scriptPath;
             newObject->materialIndex = objData.materialIndex;
-            std::cout << "[load] objet " << sceneObjects.size()
-                  << " materialIndex lu = " << objData.materialIndex << std::endl;
+            std::cout << "[load] objet " << sceneObjects.size() << " materialIndex lu = " << objData.materialIndex << std::endl;
             sceneObjects.push_back(newObject);
             indexMap[oi] = static_cast<int>(sceneObjects.size()) - 1;
         }

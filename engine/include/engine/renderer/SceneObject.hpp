@@ -59,6 +59,13 @@ public:
     enum class BodyType { None, Static, Dynamic };
     BodyType bodyType = BodyType::None;     // aucun corps par default : decor sans collision
     float mass = 1.0f;      // kg, pour un corps dynamique 
+    // nom du type dans scene.json : un texte reste lisible et ne depend pas de l ordre de l enum
+    static const char* bodyTypeName(BodyType t) {
+        return t == BodyType::Static ? "static" : t == BodyType::Dynamic ? "dynamic" : "none";
+    }
+    static BodyType bodyTypeFromName(const std::string& n) {
+        return n == "static" ? BodyType::Static : n == "dynamic" ? BodyType::Dynamic : BodyType::None;
+    }
 
     int animClip = -1;
     float animTime = 0.0f;

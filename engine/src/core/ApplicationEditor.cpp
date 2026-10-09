@@ -640,7 +640,7 @@ void Application::drawTerrainPanel() {
         ImGui::PushID(i);
         int layerMatIdx = terrain->layerMaterial[i];
         std::string current = (layerMatIdx >= 0 && layerMatIdx < static_cast<int>(materials.size()))
-                            ? materials[layerMatIdx]->getName() : std::string(Lang::tr("(default)"));
+            ? materials[layerMatIdx]->getName() : std::string(Lang::tr("(default)"));
 
         if (ImGui::BeginCombo(Lang::tr(layerNames[i]), current.c_str())) {
             if (ImGui::Selectable(Lang::tr("(default)"), layerMatIdx < 0)) {
@@ -739,7 +739,7 @@ void Application::updateBrush() {
     for (int i = 0; i < nbSegments; ++i) {
         float a = (float)i / nbSegments * 6.2831853f;
         glm::vec3 wp = hit + glm::vec3(std::cos(a) * brushRadius,
-                                       std::sin(a) * brushRadius, 0.0f);
+            std::sin(a) * brushRadius, 0.0f);
         wp.z = terrain->heightAtWorld(wp.x, wp.y) + 0.02f;
 
         glm::vec4 clip = projectionMatrix * view * terrainModel * glm::vec4(wp, 1.0f);
@@ -799,7 +799,7 @@ void Application::drawAxisGizmo() {
             dl->AddCircleFilled(t.p, 9.0f, t.col);
             ImVec2 textSize = ImGui::CalcTextSize(t.name);
             dl->AddText(ImVec2(t.p.x - textSize.x * 0.5f, t.p.y - textSize.y * 0.5f),
-                        IM_COL32(20, 20, 20, 255), t.name);
+                IM_COL32(20, 20, 20, 255), t.name);
         } else {
             dl->AddCircleFilled(t.p, 7.0f, IM_COL32(35, 35, 35, 190));
             dl->AddCircle(t.p, 7.0f, t.col, 0, 2.0f);
@@ -854,7 +854,7 @@ void Application::updateEditorCamera(float dx, float dy, float wheel) {
     if (wheel != 0.0f && !sculptEnabled) {
         orbitDistance = glm::clamp(orbitDistance * std::pow(0.9f, wheel), 0.5f, 5000.0f);
         camera->setState(orbitTarget - forward * orbitDistance,
-                         camera->getYaw(), camera->getPitch());
+            camera->getYaw(), camera->getPitch());
     }
 
     // --- L'orbite suit la selection (recale seulement quand elle CHANGE) ---
@@ -875,11 +875,11 @@ void Application::updateEditorCamera(float dx, float dy, float wheel) {
         if (terrainSelected) {
             orbitTarget = terrain->position;
         } else if (selectedObjectIndex >= 0 &&
-                   selectedObjectIndex < static_cast<int>(sceneObjects.size())) {
+            selectedObjectIndex < static_cast<int>(sceneObjects.size())) {
             orbitTarget = sceneObjects[selectedObjectIndex]->position;
         }
         camera->setState(orbitTarget - forward * orbitDistance,
-                         camera->getYaw(), camera->getPitch());
+            camera->getYaw(), camera->getPitch());
     }
     focusKeyWas = fNow;
 }
@@ -943,18 +943,18 @@ void Application::applySnapshot(const Snapshot& s) {
     for (const auto& os : s.objects) {
         if (os.meshIndex < 0 || os.meshIndex >= static_cast<int>(availableMeshes.size())) continue;
         auto varObj = std::make_shared<SceneObject>(availableMeshes[os.meshIndex]);
-        varObj->meshIndex   = os.meshIndex;
+        varObj->meshIndex = os.meshIndex;
         varObj->id = claimObjectId(os.id);
         varObj->bodyType = os.bodyType;
         varObj->mass = os.mass;
-        varObj->position    = os.position;
+        varObj->position = os.position;
         varObj->orientation = os.orientation;
-        varObj->scale       = os.scale;
-        varObj->scriptPath  = os.scriptPath;
+        varObj->scale = os.scale;
+        varObj->scriptPath = os.scriptPath;
         varObj->parent = os.parent;
         varObj->materialIndex = os.materialIndex;
         sceneObjects.push_back(varObj);
-        varObj->metallic  = os.metallic;
+        varObj->metallic = os.metallic;
         varObj->roughness = os.roughness;
         varObj->name =os.name;
         varObj->worldUvScale = os.worldUvScale;
