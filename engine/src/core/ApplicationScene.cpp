@@ -991,14 +991,17 @@ void Application::startPlay() {
     isPlaying = true;
     physics.beginPlay();
 
-    // temporaire : chaque objet racine devient une boite qui tombe sur une sol plat
-    physics.addBox(0, glm::vec3(0.0f, 0.0f, -0.5f), glm::quat(1.0f, 0.0f, 0.0f, 0.0f), glm::vec3(0.0f), glm::vec3(500.0f, 500.0f, 0.5f), false);
+    // les objets dotes d un corps physique (Inspecteur), pour l instant en boite ajustee au mesh
     for (const auto& o : sceneObjects) {
-        if (o->parent >= 0 || o->meshIndex < 0 || o->meshIndex >= static_cast<int>(availableMeshes.size())) continue;
+        if (o->bodyType == SceneObject::BodyType::None) continue;
+        if (o->parent >= 0) continue;   // un enfant suit son parent : pas encore gere
+        if (o->meshIndex < 0 || o->meshIndex >= static_cast<int>(availableMeshes.size())) continue;
+
         const Mesh& mesh = *availableMeshes[o->meshIndex];
         const glm::vec3 center = (mesh.getBoundsMin() + mesh.getBoundsMax()) * 0.5f * o->scale;
         const glm::vec3 half = (mesh.getBoundsMax() - mesh.getBoundsMin()) * 0.5f * o->scale;
-        physics.addBox(o->id, o->position, o->orientation, center, half, true);
+        physics.addBox(o->id, o->position, o->orientation, center, half,
+            o->bodyType == SceneObject::BodyType::Dynamic, o->mass);
     }
 
     for (auto& o : sceneObjects) o->stateMachine.reset();

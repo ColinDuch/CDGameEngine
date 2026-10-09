@@ -302,6 +302,8 @@ private:
 
     struct ObjectState {
         uint32_t id = 0;
+        SceneObject::BodyType bodyType = SceneObject::BodyType::None;
+        float mass = 1.0f;
         int meshIndex = 0;
         glm::vec3 position{0.0f};
         glm::quat orientation{1.0f, 0.0f, 0.0f, 0.0f};

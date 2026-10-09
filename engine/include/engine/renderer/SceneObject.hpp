@@ -55,6 +55,11 @@ public:
     // un identifiant unique et stable : ne change jamais, meme si l ordre de la scene change
     uint32_t id = 0;    // 0 = pas encore attribue
 
+    // --- physique ---
+    enum class BodyType { None, Static, Dynamic };
+    BodyType bodyType = BodyType::None;     // aucun corps par default : decor sans collision
+    float mass = 1.0f;      // kg, pour un corps dynamique 
+
     int animClip = -1;
     float animTime = 0.0f;
     float animSpeed = 1.0f;

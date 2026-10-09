@@ -1,4 +1,4 @@
-# include <engine/physics/PhysicsWorld.hpp>
+#include <engine/physics/PhysicsWorld.hpp>
 
 #include <Jolt/Jolt.h>
 #include <Jolt/RegisterTypes.h>
@@ -10,6 +10,7 @@
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
+#include <Jolt/Physics/Collision/Shape/HeightFieldShape.h>
 
 #include <algorithm>
 #include <thread>
@@ -60,6 +61,7 @@ namespace {
     };
 
     constexpr float FIXED_STEP = 1.0f / 60.0f;  // la physique avance par pas fixes
+    constexpr uint32_t TERRAIN_ID = 0xFFFFFFFF;     // cle du terrain : aucun objet n a cet id
 
     // glm <-> Jolt : memes conventions, seul l ordre du quaternion differe
     JPH::Vec3 toJolt(const glm::vec3& v) { return JPH::Vec3(v.x, v.y, v.z); }
@@ -133,7 +135,8 @@ void PhysicsWorld::step(float dt) {
     }
 }
 
-void PhysicsWorld::addBox(uint32_t objectId, const glm::vec3& position, const glm::quat& rotation, const glm::vec3& center, const glm::vec3& halfExtent, bool dynamic) {
+void PhysicsWorld::addBox(uint32_t objectId, const glm::vec3& position, const glm::quat& rotation, const glm::vec3& center, 
+    const glm::vec3& halfExtent, bool dynamic, float mass) {
     // une boite plate (un plan) n a pas d epaisseur : on lui en donne un minimum
     const glm::vec3 half = glm::max(glm::abs(halfExtent), glm::vec3(0.01f));
     const float radius = std::min(JPH::cDefaultConvexRadius, std::min(half.x, std::min(half.y, half.z)));
@@ -149,6 +152,12 @@ void PhysicsWorld::addBox(uint32_t objectId, const glm::vec3& position, const gl
     JPH::BodyCreationSettings settings(result.Get(), JPH::RVec3(toJolt(position)), toJolt(rotation).Normalized(),
         dynamic ? JPH::EMotionType::Dynamic : JPH::EMotionType::Static,
         dynamic ? Layers::MOVING : Layers::STATIC);
+    
+    // la masse choisie ; Jolt en deduit l inertie a partir de la forme
+    if (dynamic) {
+        settings.mOverrideMassProperties = JPH::EOverrideMassProperties::CalculateInertia;
+        settings.mMassPropertiesOverride.mMass = std::max(mass, 0.001f);
+    }
     
     JPH::BodyInterface& bodiesApi = impl->system.GetBodyInterface();
     const JPH::BodyID id = bodiesApi.CreateAndAddBody(settings, dynamic ? JPH::EActivation::Activate : JPH::EActivation::DontActivate);
@@ -180,3 +189,61 @@ void PhysicsWorld::clear() {
     }
     impl->bodies.clear();
 }
+
+void PhysicsWorld::addTerrain(const std::vector<float>& heights, int resX, int resY, float sizeX, float sizeY,
+    const glm::vec3& position, const glm::quat& rotation, const glm::vec3& scale) {
+        if (resX < 2 || resY < 2 || heights.size() < static_cast<size_t>(resX) * resY) return;
+
+        // Jolt veut une grille carree de n x n echantillons, n pair : on reechantillonne 
+        const int n = (std::max(resX, resY) + 1) & ~1;
+
+        // hauteur du terrain a une position fractionnaire de sa grille (bilineaire)
+        auto sample = [&](float fx, float fy) {
+            const int x0 = std::min(static_cast<int>(fx), resX - 2);
+            const int y0 = std::min(static_cast<int>(fy), resY - 2);
+            const float tx = fx - x0, ty = fy - y0;
+            const float h00 = heights[y0 * resX + x0], h10 = heights[y0 * resX + x0 + 1];
+            const float h01 = heights[(y0 + 1) * resX + x0], h11 = heights[(y0 + 1) * resX + x0 + 1];
+            return (h00 * (1 - tx) + h10 * tx) * (1 - ty) + (h01 * (1 - tx) + h11 * tx) * ty;
+        };
+
+        /*
+        le heightfield de Jolt est en Y-up : hauteur sur Y, grille sur X et Z
+        on le tourne de +90 degres autour de X pour le poser dasn notre monde Z-up.
+        cette rotation envoie Z de Jolt vers -Y du terrain : les rangees sont donc lues a l envers
+        */
+        std::vector<float> samples(static_cast<size_t>(n) * n);
+        for (int y = 0; y < n; ++y) {
+            const  float fy = (resY - 1) * (1.0f - static_cast<float>(y) / (n - 1));    // rangee inversee
+            for (int x = 0; x <n; ++x) {
+                const float fx = (resX - 1) * static_cast<float>(x) / (n - 1);
+                samples[static_cast<size_t>(y) * n + x] = sample(fx, fy);
+            }
+        }
+
+        // DIAGNOSTIC temporaire
+        const auto [lo, hi] = std::minmax_element(samples.begin(), samples.end());
+        std::cout << "[physics] terrain " << resX << "x" << resY << " -> " << n << "x" << n
+              << ", hauteurs de " << *lo << " a " << *hi << std::endl;
+
+        // l echelle de l objet terrain est integree a la forme (x, hauteur, y)
+        const glm::vec3 s = glm::abs(scale);
+        const JPH::Vec3 joltScale(sizeX / (n - 1) * s.x, s.z, sizeY / (n - 1) * s.y);
+        const JPH::Vec3 joltOffset(-0.5f * sizeX * s.x, 0.0f, -0.5f * sizeY * s.y);
+
+        JPH::HeightFieldShapeSettings shape(samples.data(), joltOffset, joltScale, static_cast<JPH::uint32>(n));
+        JPH::ShapeSettings::ShapeResult result = shape.Create();
+        if (result.HasError()) {
+            std::cerr << "[physics] terrainInvalide : " << result.GetError().c_str() << std::endl;
+            return;
+        }
+
+        const glm::quat yUpToZUp = glm::angleAxis(glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        JPH::BodyCreationSettings settings(result.Get(), JPH::RVec3(toJolt(position)), 
+            toJolt(rotation * yUpToZUp).Normalized(), JPH::EMotionType::Static, Layers::STATIC);
+
+        JPH::BodyInterface& bodiesApi = impl->system.GetBodyInterface();
+        const JPH::BodyID id = bodiesApi.CreateAndAddBody(settings, JPH::EActivation::DontActivate);
+        if (id.IsInvalid()) return;
+        impl->bodies[TERRAIN_ID] = id;
+    }

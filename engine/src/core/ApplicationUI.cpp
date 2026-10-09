@@ -394,6 +394,27 @@ void Application::drawInspectorPanel() {
             if (ImGui::IsItemActivated()) pushUndo();
         }
 
+        // ---- Physique ----
+        ImGui::Separator();
+        {
+            const char* types[] = { Lang::tr("None"), Lang::tr("Static"), Lang::tr("Dynamic") };
+            int type = static_cast<int>(selected->bodyType);
+            if (ImGui::Combo(Lang::tr("Physics"), &type, types, 3)) {
+                pushUndo();
+                selected->bodyType = static_cast<SceneObject::BodyType>(type);
+            }
+            if (ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("%s", Lang::tr("None: no collision. solid, never moves. Dynamic: falls and collides."));
+            }
+            if (selected->bodyType == SceneObject::BodyType::Dynamic) {
+                ImGui::DragFloat(Lang::tr("Mass (kg)"),  & selected->mass, 0.1f, 0.01f, 100000.0f, "%.2f");
+                if (ImGui::IsItemActivated()) pushUndo();
+            }
+            if (selected->bodyType != SceneObject::BodyType::None && selected->parent >= 0) {
+                ImGui::TextColored(ImVec4(1.0f, 0.7f, 0.2f, 1.0f), "%s", Lang::tr("Ignored: child objects have no physics yet."));
+            }
+        }
+
         // ---- Script ----
         ImGui::Separator();
         ImGui::Text("%s", Lang::tr("Script"));

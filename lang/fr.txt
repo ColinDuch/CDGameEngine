@@ -428,3 +428,12 @@ Add an action to hold at the same time=Ajouter une action à tenir en même temp
 Add step=Ajouter une étape
 Add sequence=Ajouter une séquence
 unknown sequence: %s=séquence inconnue : %s
+
+# --- Physique ---
+Physics=Physique
+None=Aucune
+Static=Statique
+Dynamic=Dynamique
+Mass (kg)=Masse (kg)
+None: no collision. Static: solid, never moves. Dynamic: falls and collides.=Aucune : pas de collision. Statique : solide, ne bouge jamais. Dynamique : tombe et entre en collision.
+Ignored: child objects have no physics yet.=Ignoré : les objets enfants n'ont pas encore de physique.

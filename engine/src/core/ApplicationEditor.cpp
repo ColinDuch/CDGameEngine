@@ -406,6 +406,8 @@ void Application::duplicateSelection() {
         copy->scale = src->scale;
         copy->meshIndex = src->meshIndex;
         copy->id = newObjectId();   // une copie est un nouvel objet
+        copy->bodyType = src->bodyType;
+        copy->mass = src->mass;
         copy->materialIndex = src->materialIndex;
         copy->metallic = src->metallic;
         copy->roughness = src->roughness;
@@ -889,6 +891,8 @@ Application::Snapshot Application::captureState() {
         ObjectState os;
         os.meshIndex = o->meshIndex;
         os.id = o->id;
+        os.bodyType = o->bodyType;
+        os.mass = o->mass;
         os.position = o->position;
         os.orientation = o->orientation;
         os.scale = o->scale;
@@ -941,6 +945,8 @@ void Application::applySnapshot(const Snapshot& s) {
         auto varObj = std::make_shared<SceneObject>(availableMeshes[os.meshIndex]);
         varObj->meshIndex   = os.meshIndex;
         varObj->id = claimObjectId(os.id);
+        varObj->bodyType = os.bodyType;
+        varObj->mass = os.mass;
         varObj->position    = os.position;
         varObj->orientation = os.orientation;
         varObj->scale       = os.scale;
