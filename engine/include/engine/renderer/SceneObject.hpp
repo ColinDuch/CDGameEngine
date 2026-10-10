@@ -56,15 +56,23 @@ public:
     uint32_t id = 0;    // 0 = pas encore attribue
 
     // --- physique ---
-    enum class BodyType { None, Static, Dynamic };
+    enum class BodyType { None, Static, Dynamic, Character }; // nouveaux types : toujours a la fin
     BodyType bodyType = BodyType::None;     // aucun corps par default : decor sans collision
     float mass = 1.0f;      // kg, pour un corps dynamique 
     // nom du type dans scene.json : un texte reste lisible et ne depend pas de l ordre de l enum
     static const char* bodyTypeName(BodyType t) {
-        return t == BodyType::Static ? "static" : t == BodyType::Dynamic ? "dynamic" : "none";
+        switch (t) {
+            case BodyType::Static: return "static";
+            case BodyType::Dynamic: return "dynamic";
+            case BodyType::Character: return "character";
+            default : return "none";
+        }
     }
     static BodyType bodyTypeFromName(const std::string& n) {
-        return n == "static" ? BodyType::Static : n == "dynamic" ? BodyType::Dynamic : BodyType::None;
+        if (n == "static") return BodyType::Static;
+        if (n == "dynamic") return BodyType::Dynamic;
+        if (n == "character") return BodyType::Character;
+        return BodyType::None;
     }
 
     int animClip = -1;

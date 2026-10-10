@@ -435,8 +435,10 @@ None=Aucune
 Static=Statique
 Dynamic=Dynamique
 Mass (kg)=Masse (kg)
-None: no collision. Static: solid, never moves. Dynamic: falls and collides.=Aucune : pas de collision. Statique : solide, ne bouge jamais. Dynamique : tombe et entre en collision.
+None: no collision. Static: solid, never moves. Dynamic: falls and collides. Character: walks and stays upright.=Aucune : pas de collision. Statique : solide, ne bouge jamais. Dynamique : tombe et entre en collision. Personnage : marche et reste debout.
 Ignored: child objects have no physics yet.=Ignoré : les objets enfants n'ont pas encore de physique.
 
 Show collisions=Afficher les collisions
-Wireframe of the physics shapes: green = dynamic, blue = static=Formes physiques en fil de fer : vert = dynamique, bleu = statique
+Wireframe of the physics shapes: green for dynamic, blue for static=Formes physiques en fil de fer : vert pour dynamique, bleu pour statique
+
+Character=Personnage

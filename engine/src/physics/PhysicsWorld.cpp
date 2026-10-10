@@ -11,6 +11,8 @@
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
 #include <Jolt/Physics/Collision/Shape/HeightFieldShape.h>
+#include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
+#include <Jolt/Physics/Character/CharacterVirtual.h>
 
 #include <algorithm>
 #include <thread>
@@ -85,6 +87,13 @@ struct PhysicsWorld::Impl {
     float simulated = 0.0f;     // temps simule depuis le play
     std::unordered_map<uint32_t, JPH::BodyID> bodies;   // id d objet -> corps Jolt
 
+    // personnages : ce ne sont pas des corps Jolt, mais des capsules deplacees a la main
+    struct Character {
+        JPH::Ref<JPH::CharacterVirtual> character;
+        glm::quat rotation;     // rotation d origine : le personnage reste debout
+    };
+    std::unordered_map<uint32_t, Character> characters;
+
     Impl() {
         system.Init(10240, 0, 65536, 10240, broadPhaseLayers, objectVsBroadPhase, objectVsObject);
         system.SetGravity(JPH::Vec3(0.0f, 0.0f, -9.81f));       // monde en Z-up
@@ -128,6 +137,7 @@ void PhysicsWorld::step(float dt) {
     // pas fixes : la simulation ne depend pas des fps, et reste stable
     impl->accumulator += std::min(dt, 0.25f);   // une image tres longue ne fait pas exploser le calcul
     while (impl->accumulator >= FIXED_STEP) {
+        updateCharacters();
         impl->system.Update(FIXED_STEP, 1, &impl->tempAllocator, &impl->jobs);
         impl->accumulator -= FIXED_STEP;
         impl->steps++;
@@ -171,6 +181,14 @@ void PhysicsWorld::addBox(uint32_t objectId, const glm::vec3& position, const gl
 }
 
 bool PhysicsWorld::getTransform(uint32_t objectId, glm::vec3& position, glm::quat& rotation) const {
+    const auto c = impl->characters.find(objectId);
+    if (c != impl->characters.end()) {
+        const JPH::RVec3 p = c->second.character->GetPosition();
+        position = glm::vec3(static_cast<float>(p.GetX()), static_cast<float>(p.GetY()), static_cast<float>(p.GetZ()));
+        rotation = c->second.rotation;  // la physique ne le fait pas pivoter
+        return true;
+    }
+
     const auto it = impl->bodies.find(objectId);
     if (it == impl->bodies.end()) return false;
 
@@ -183,6 +201,7 @@ bool PhysicsWorld::getTransform(uint32_t objectId, glm::vec3& position, glm::qua
 }
 
 void PhysicsWorld::removeBody(uint32_t objectId) {
+    impl->characters.erase(objectId);   // un personnage n est pas dans "bodies"
     const auto it = impl->bodies.find(objectId);
     if (it == impl->bodies.end()) return;
 
@@ -199,58 +218,108 @@ void PhysicsWorld::clear() {
         bodiesApi.DestroyBody(id);      // puis libere
     }
     impl->bodies.clear();
+    impl->characters.clear();
 }
 
 void PhysicsWorld::addTerrain(const std::vector<float>& heights, int resX, int resY, float sizeX, float sizeY,
     const glm::vec3& position, const glm::quat& rotation, const glm::vec3& scale) {
-        if (resX < 2 || resY < 2 || heights.size() < static_cast<size_t>(resX) * resY) return;
-        removeBody(TERRAIN_ID);     // un seul terrain : l ancien est remplace
+    if (resX < 2 || resY < 2 || heights.size() < static_cast<size_t>(resX) * resY) return;
+    removeBody(TERRAIN_ID);     // un seul terrain : l ancien est remplace
 
-        // Jolt veut une grille carree de n x n echantillons, n pair : on reechantillonne 
-        const int n = (std::max(resX, resY) + 1) & ~1;
+    // Jolt veut une grille carree de n x n echantillons, n pair : on reechantillonne 
+    const int n = (std::max(resX, resY) + 1) & ~1;
 
-        // hauteur du terrain a une position fractionnaire de sa grille (bilineaire)
-        auto sample = [&](float fx, float fy) {
-            const int x0 = std::min(static_cast<int>(fx), resX - 2);
-            const int y0 = std::min(static_cast<int>(fy), resY - 2);
-            const float tx = fx - x0, ty = fy - y0;
-            const float h00 = heights[y0 * resX + x0], h10 = heights[y0 * resX + x0 + 1];
-            const float h01 = heights[(y0 + 1) * resX + x0], h11 = heights[(y0 + 1) * resX + x0 + 1];
-            return (h00 * (1 - tx) + h10 * tx) * (1 - ty) + (h01 * (1 - tx) + h11 * tx) * ty;
-        };
+    // hauteur du terrain a une position fractionnaire de sa grille (bilineaire)
+    auto sample = [&](float fx, float fy) {
+        const int x0 = std::min(static_cast<int>(fx), resX - 2);
+        const int y0 = std::min(static_cast<int>(fy), resY - 2);
+        const float tx = fx - x0, ty = fy - y0;
+        const float h00 = heights[y0 * resX + x0], h10 = heights[y0 * resX + x0 + 1];
+        const float h01 = heights[(y0 + 1) * resX + x0], h11 = heights[(y0 + 1) * resX + x0 + 1];
+        return (h00 * (1 - tx) + h10 * tx) * (1 - ty) + (h01 * (1 - tx) + h11 * tx) * ty;
+    };
 
-        /*
-        le heightfield de Jolt est en Y-up : hauteur sur Y, grille sur X et Z
-        on le tourne de +90 degres autour de X pour le poser dasn notre monde Z-up.
-        cette rotation envoie Z de Jolt vers -Y du terrain : les rangees sont donc lues a l envers
-        */
-        std::vector<float> samples(static_cast<size_t>(n) * n);
-        for (int y = 0; y < n; ++y) {
-            const  float fy = (resY - 1) * (1.0f - static_cast<float>(y) / (n - 1));    // rangee inversee
-            for (int x = 0; x <n; ++x) {
-                const float fx = (resX - 1) * static_cast<float>(x) / (n - 1);
-                samples[static_cast<size_t>(y) * n + x] = sample(fx, fy);
-            }
+    /*
+    le heightfield de Jolt est en Y-up : hauteur sur Y, grille sur X et Z
+    on le tourne de +90 degres autour de X pour le poser dasn notre monde Z-up.
+    cette rotation envoie Z de Jolt vers -Y du terrain : les rangees sont donc lues a l envers
+    */
+    std::vector<float> samples(static_cast<size_t>(n) * n);
+    for (int y = 0; y < n; ++y) {
+        const  float fy = (resY - 1) * (1.0f - static_cast<float>(y) / (n - 1));    // rangee inversee
+        for (int x = 0; x <n; ++x) {
+            const float fx = (resX - 1) * static_cast<float>(x) / (n - 1);
+            samples[static_cast<size_t>(y) * n + x] = sample(fx, fy);
         }
-
-        // l echelle de l objet terrain est integree a la forme (x, hauteur, y)
-        const glm::vec3 s = glm::abs(scale);
-        const JPH::Vec3 joltScale(sizeX / (n - 1) * s.x, s.z, sizeY / (n - 1) * s.y);
-        const JPH::Vec3 joltOffset(-0.5f * sizeX * s.x, 0.0f, -0.5f * sizeY * s.y);
-
-        JPH::HeightFieldShapeSettings shape(samples.data(), joltOffset, joltScale, static_cast<JPH::uint32>(n));
-        JPH::ShapeSettings::ShapeResult result = shape.Create();
-        if (result.HasError()) {
-            std::cerr << "[physics] terrainInvalide : " << result.GetError().c_str() << std::endl;
-            return;
-        }
-
-        const glm::quat yUpToZUp = glm::angleAxis(glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-        JPH::BodyCreationSettings settings(result.Get(), JPH::RVec3(toJolt(position)), 
-            toJolt(rotation * yUpToZUp).Normalized(), JPH::EMotionType::Static, Layers::STATIC);
-
-        JPH::BodyInterface& bodiesApi = impl->system.GetBodyInterface();
-        const JPH::BodyID id = bodiesApi.CreateAndAddBody(settings, JPH::EActivation::DontActivate);
-        if (id.IsInvalid()) return;
-        impl->bodies[TERRAIN_ID] = id;
     }
+
+    // l echelle de l objet terrain est integree a la forme (x, hauteur, y)
+    const glm::vec3 s = glm::abs(scale);
+    const JPH::Vec3 joltScale(sizeX / (n - 1) * s.x, s.z, sizeY / (n - 1) * s.y);
+    const JPH::Vec3 joltOffset(-0.5f * sizeX * s.x, 0.0f, -0.5f * sizeY * s.y);
+
+    JPH::HeightFieldShapeSettings shape(samples.data(), joltOffset, joltScale, static_cast<JPH::uint32>(n));
+    JPH::ShapeSettings::ShapeResult result = shape.Create();
+    if (result.HasError()) {
+        std::cerr << "[physics] terrainInvalide : " << result.GetError().c_str() << std::endl;
+        return;
+    }
+
+    const glm::quat yUpToZUp = glm::angleAxis(glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    JPH::BodyCreationSettings settings(result.Get(), JPH::RVec3(toJolt(position)), 
+        toJolt(rotation * yUpToZUp).Normalized(), JPH::EMotionType::Static, Layers::STATIC);
+
+    JPH::BodyInterface& bodiesApi = impl->system.GetBodyInterface();
+    const JPH::BodyID id = bodiesApi.CreateAndAddBody(settings, JPH::EActivation::DontActivate);
+    if (id.IsInvalid()) return;
+    impl->bodies[TERRAIN_ID] = id;
+}
+
+void PhysicsWorld::addCharacter(uint32_t objectId, const glm::vec3& position, const glm::quat& rotation,
+    float radius, float height, const glm::vec3& footOffset) {
+    removeBody(objectId);
+
+    // capsule = un cylindre et deux demi-spheres : sa hauteur totale vaut cylindre + 2 rayons
+    radius = std::max(radius, 0.05f);
+    const float halfCylinder = std::max(0.5f * height - radius, 0.01f);
+
+    // la capsule de Jolt est orientee selon Y : on la redresse selon Z,
+    // et on la remote pour que son point le plus bas touche les pieds
+    const glm::quat yToZ = glm::angleAxis(glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    const glm::vec3 offset = footOffset + glm::vec3(0.0f, 0.0f, halfCylinder + radius);
+    JPH::RotatedTranslatedShapeSettings shape(toJolt(offset), toJolt(yToZ), 
+        new JPH::CapsuleShapeSettings(halfCylinder, radius));
+    JPH::ShapeSettings::ShapeResult result = shape.Create();
+    if (result.HasError()) {
+        std::cerr << "[physics] capsule invalide : " << result.GetError().c_str() << std::endl;
+        return;
+    }
+
+    JPH::CharacterVirtualSettings settings;
+    settings.mShape = result.Get();
+    settings.mUp = JPH::Vec3::sAxisZ();     // monde en Z-up
+    settings.mMaxSlopeAngle = JPH::DegreesToRadians(45.0f); // au dela, il glisse
+    // seul le bas de la capsule peut porter : un plafond touche par al tete n est pas un sol
+    settings.mSupportingVolume = JPH::Plane(JPH::Vec3::sAxisZ(), -(footOffset.z + radius));
+
+    Impl::Character c;
+    c.character = new JPH::CharacterVirtual(&settings, JPH::RVec3(toJolt(position)), JPH::Quat::sIdentity(), &impl->system);
+    c.rotation = rotation;
+    impl->characters[objectId] = c;
+}
+
+void PhysicsWorld::updateCharacters() {
+    const JPH::Vec3 gravity = impl->system.GetGravity();
+    for (auto& [objectId, c] : impl->characters) {
+        // pose au sol : pas de vitesse verticale qui s accumule ; en l air : la gravite l accelere
+        JPH::Vec3 v =c.character->GetLinearVelocity();
+        if (c.character->GetGroundState() == JPH::CharacterVirtual::EGroundState::OnGround) v.SetZ(0.0f);
+        else v += gravity * FIXED_STEP;
+        c.character->SetLinearVelocity(v);
+
+        c.character->Update(FIXED_STEP, gravity, 
+            impl->system.GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
+            impl->system.GetDefaultLayerFilter(Layers::MOVING),
+            {}, {}, impl->tempAllocator);
+    }
+}

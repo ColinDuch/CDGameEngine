@@ -30,6 +30,11 @@ class PhysicsWorld {
         // center et halfExtent : dans le repere de l objet, echelle deja appliquee
         void addBox(uint32_t objectId, const glm::vec3& position, const glm::quat& rotation, const glm::vec3& center, const glm::vec3& halfExtent,
             bool dynamic, float mass = 1.0f);
+        
+        // personnag : capsule debout, deplacee par le moteur (pas par les forces)
+        // footOffset : position des pieds dans le repere de l objet, echelle appliquee
+        void addCharacter(uint32_t objectId, const glm::vec3& position, const glm::quat& rotation,
+            float radius, float height, const glm::vec3& footOffset);
 
         // terrain statique : grille de hauteurs resX x et resY (index = iy*resX + ix), centree, Z-up
         void addTerrain(const std::vector<float>& heights, int resX, int resY, float sizeX, float sizeY,
@@ -41,6 +46,7 @@ class PhysicsWorld {
         void clear();   // retire tous les corps 
         void removeBody(uint32_t objectId);     // retire le coprs d un objet, s il en a un
     private:
+        void updateCharacters();    // un pas de deplacement des personnages
         struct Impl;    // les objets Jolt, chaches dans le .cpp
         std::unique_ptr<Impl> impl;
 };

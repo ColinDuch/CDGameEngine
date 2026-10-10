@@ -322,7 +322,7 @@ void Application::drawSettingsPanel() {
     ImGui::Checkbox(Lang::tr("Frustum culling"), &frustumCullingEnabled);
     ImGui::TextDisabled(Lang::tr("Culled: %d / %d"), culledCount, static_cast<int>(sceneObjects.size()));
     ImGui::Checkbox(Lang::tr("Show collisions"), &showColliders);
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Lang::tr("Wireframe of the physics shapes: green = dynamic, blue = static"));
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Lang::tr("Wireframe of the physics shapes: green for dynamic, blue for static"));
 
     if (ImGui::CollapsingHeader(Lang::tr("Advanced colors"), ImGuiTreeNodeFlags_DefaultOpen)) {
         ImGui::ShowStyleEditor();
@@ -398,14 +398,14 @@ void Application::drawInspectorPanel() {
         // ---- Physique ----
         ImGui::Separator();
         {
-            const char* types[] = { Lang::tr("None"), Lang::tr("Static"), Lang::tr("Dynamic") };
+            const char* types[] = { Lang::tr("None"), Lang::tr("Static"), Lang::tr("Dynamic"), Lang::tr("Character") };
             int type = static_cast<int>(selected->bodyType);
-            if (ImGui::Combo(Lang::tr("Physics"), &type, types, 3)) {
+            if (ImGui::Combo(Lang::tr("Physics"), &type, types, 4)) {
                 pushUndo();
                 selected->bodyType = static_cast<SceneObject::BodyType>(type);
             }
             if (ImGui::IsItemHovered()) {
-                ImGui::SetTooltip("%s", Lang::tr("None: no collision. Static: solid, never moves. Dynamic: falls and collides."));
+                ImGui::SetTooltip("%s", Lang::tr("None: no collision. Static: solid, never moves. Dynamic: falls and collides. Character: walk and stys upright"));
             }
             if (selected->bodyType == SceneObject::BodyType::Dynamic) {
                 ImGui::DragFloat(Lang::tr("Mass (kg)"),  & selected->mass, 0.1f, 0.01f, 100000.0f, "%.2f");
