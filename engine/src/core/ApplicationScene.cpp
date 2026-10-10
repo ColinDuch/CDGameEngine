@@ -991,19 +991,21 @@ void Application::startPlay() {
     isPlaying = true;
     physics.beginPlay();
 
+    // le terrain affiche devient solide
+    if (terrain && terrainVisible) {
+        physics.addTerrain(terrain->heights(), terrain->getResX(), terrain->getResY(),
+                        terrain->getSizeX(), terrain->getSizeY(),
+                        terrain->position, terrain->orientation, terrain->scale);
+    }
+
     // les objets dotes d un corps physique (Inspecteur), pour l instant en boite ajustee au mesh
     for (const auto& o : sceneObjects) {
         if (o->bodyType == SceneObject::BodyType::None) continue;
         if (o->parent >= 0) continue;   // un enfant suit son parent : pas encore gere
         if (o->meshIndex < 0 || o->meshIndex >= static_cast<int>(availableMeshes.size())) continue;
 
-        // le terrain affiche devient solide
-        if (terrain && terrainVisible) {
-            physics.addTerrain(terrain->heights(), terrain->getResX(), terrain->getResY(),
-                            terrain->getSizeX(), terrain->getSizeY(),
-                            terrain->position, terrain->orientation, terrain->scale);
-        }
         
+
         const Mesh& mesh = *availableMeshes[o->meshIndex];
         const glm::vec3 center = (mesh.getBoundsMin() + mesh.getBoundsMax()) * 0.5f * o->scale;
         const glm::vec3 half = (mesh.getBoundsMax() - mesh.getBoundsMin()) * 0.5f * o->scale;

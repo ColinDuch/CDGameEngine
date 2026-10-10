@@ -320,8 +320,9 @@ void Application::drawSettingsPanel() {
     ImGui::Checkbox(Lang::tr("Orbit around selection"), &orbitAroundSelection);
 
     ImGui::Checkbox(Lang::tr("Frustum culling"), &frustumCullingEnabled);
-    ImGui::TextDisabled(Lang::tr("Culled: %d / %d"), culledCount,
-                        static_cast<int>(sceneObjects.size()));
+    ImGui::TextDisabled(Lang::tr("Culled: %d / %d"), culledCount, static_cast<int>(sceneObjects.size()));
+    ImGui::Checkbox(Lang::tr("Show collisions"), &showColliders);
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Lang::tr("Wireframe of the physics shapes: green = dynamic, blue = static"));
 
     if (ImGui::CollapsingHeader(Lang::tr("Advanced colors"), ImGuiTreeNodeFlags_DefaultOpen)) {
         ImGui::ShowStyleEditor();
@@ -329,8 +330,6 @@ void Application::drawSettingsPanel() {
 
     if (ImGui::CollapsingHeader(Lang::tr("Snap / Alignment (Shift)"), ImGuiTreeNodeFlags_DefaultOpen)) {
         ImGui::TextDisabled("%s", Lang::tr("Hold Shift while manipulating."));
-        ImGui::Checkbox(Lang::tr("Show collisions"), &showColliders);
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Lang::tr("Wireframe of the physics shapes: green =dynamic, blue = static"));
         ImGui::TextDisabled("%s", Lang::tr("Ctrl+click a slider to type a value."));
         ImGui::SliderFloat(Lang::tr("Translation (tiles)"), &snapTranslate, 0.1f, 20.0f, "%.2f");
         ImGui::SliderFloat(Lang::tr("Rotation (degrees)"), &snapRotate, 1.0f, 180.0f, "%.0f");
@@ -406,7 +405,7 @@ void Application::drawInspectorPanel() {
                 selected->bodyType = static_cast<SceneObject::BodyType>(type);
             }
             if (ImGui::IsItemHovered()) {
-                ImGui::SetTooltip("%s", Lang::tr("None: no collision. solid, never moves. Dynamic: falls and collides."));
+                ImGui::SetTooltip("%s", Lang::tr("None: no collision. Static: solid, never moves. Dynamic: falls and collides."));
             }
             if (selected->bodyType == SceneObject::BodyType::Dynamic) {
                 ImGui::DragFloat(Lang::tr("Mass (kg)"),  & selected->mass, 0.1f, 0.01f, 100000.0f, "%.2f");

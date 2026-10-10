@@ -137,6 +137,7 @@ void PhysicsWorld::step(float dt) {
 
 void PhysicsWorld::addBox(uint32_t objectId, const glm::vec3& position, const glm::quat& rotation, const glm::vec3& center, 
     const glm::vec3& halfExtent, bool dynamic, float mass) {
+    removeBody(objectId);   // un seul corps par objet : l ancien est remplace
     // une boite plate (un plan) n a pas d epaisseur : on lui en donne un minimum
     const glm::vec3 half = glm::max(glm::abs(halfExtent), glm::vec3(0.01f));
     const float radius = std::min(JPH::cDefaultConvexRadius, std::min(half.x, std::min(half.y, half.z)));
@@ -181,6 +182,16 @@ bool PhysicsWorld::getTransform(uint32_t objectId, glm::vec3& position, glm::qua
     return true;
 }
 
+void PhysicsWorld::removeBody(uint32_t objectId) {
+    const auto it = impl->bodies.find(objectId);
+    if (it == impl->bodies.end()) return;
+
+    JPH::BodyInterface& bodiesApi = impl->system.GetBodyInterface();
+    bodiesApi.RemoveBody(it->second);
+    bodiesApi.DestroyBody(it->second);
+    impl->bodies.erase(it);
+}
+
 void PhysicsWorld::clear() {
     JPH::BodyInterface& bodiesApi = impl->system.GetBodyInterface();
     for (const auto& [objectId, id] : impl->bodies) {
@@ -193,6 +204,7 @@ void PhysicsWorld::clear() {
 void PhysicsWorld::addTerrain(const std::vector<float>& heights, int resX, int resY, float sizeX, float sizeY,
     const glm::vec3& position, const glm::quat& rotation, const glm::vec3& scale) {
         if (resX < 2 || resY < 2 || heights.size() < static_cast<size_t>(resX) * resY) return;
+        removeBody(TERRAIN_ID);     // un seul terrain : l ancien est remplace
 
         // Jolt veut une grille carree de n x n echantillons, n pair : on reechantillonne 
         const int n = (std::max(resX, resY) + 1) & ~1;
@@ -220,11 +232,6 @@ void PhysicsWorld::addTerrain(const std::vector<float>& heights, int resX, int r
                 samples[static_cast<size_t>(y) * n + x] = sample(fx, fy);
             }
         }
-
-        // DIAGNOSTIC temporaire
-        const auto [lo, hi] = std::minmax_element(samples.begin(), samples.end());
-        std::cout << "[physics] terrain " << resX << "x" << resY << " -> " << n << "x" << n
-              << ", hauteurs de " << *lo << " a " << *hi << std::endl;
 
         // l echelle de l objet terrain est integree a la forme (x, hauteur, y)
         const glm::vec3 s = glm::abs(scale);

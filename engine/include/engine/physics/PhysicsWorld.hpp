@@ -39,6 +39,7 @@ class PhysicsWorld {
         bool getTransform(uint32_t objectId, glm::vec3& position, glm::quat& rotation) const;
 
         void clear();   // retire tous les corps 
+        void removeBody(uint32_t objectId);     // retire le coprs d un objet, s il en a un
     private:
         struct Impl;    // les objets Jolt, chaches dans le .cpp
         std::unique_ptr<Impl> impl;
