@@ -1042,6 +1042,59 @@ void Application::redo() {
     sceneMessage = Lang::tr("Redone.");
 }
 
+/*
+formes de collision en fil de fer, dessinees par-dessus la scene
+elles sont deduites des objets eux-memes : en play, les objets physiques suivent la physique,
+donc on voir exactement les boites simulees 
+*/
+void Application::drawColliders() {
+    if (!showColliders) return;
+
+    const ImGuiIO& io = ImGui::GetIO();
+    const float width = io.DisplaySize.x, height = io.DisplaySize.y;
+    if (width <= 0.0f || height <= 0.0f) return;
+
+    const glm::mat4 viewProj = projectionMatrix * camera->getViewMatrix();
+    ImDrawList* dl = ImGui::GetBackgroundDrawList();
+
+    // les 12 aretes d une boite. Un coin est numerote par 3 bits : bit 0 x max, bit 1 = y max, bit 2 = z max
+    static const int EDGES[12][2] = { {0, 1}, {2, 3}, {4, 5}, {6, 7},      // aretes selon x
+                                      {0, 2}, {1, 3}, {4, 6}, {5, 7},      // selon y
+                                      {0, 4}, {1, 5}, {2, 6}, {3, 7} };    // selon z
+    
+    for (int i = 0; i < static_cast<int>(sceneObjects.size()); ++i) {
+        const auto& o = sceneObjects[i];
+        if (o->bodyType == SceneObject::BodyType::None) continue;
+        if (o->meshIndex < 0 || o->meshIndex >= static_cast<int>(availableMeshes.size())) continue;
+
+        const Mesh& mesh = *availableMeshes[o->meshIndex];
+        const glm::vec3 bmin = mesh.getBoundsMin(), bmax = mesh.getBoundsMax();
+        const glm::mat4 mvp = viewProj * o->getModelMatrix();
+
+        ImVec2 pts[8];
+        bool front[8];
+        for (int c = 0; c < 8; ++c) {
+            const glm::vec3 corner((c & 1) ? bmax.x : bmin.x, (c & 2) ? bmax.y : bmin.y, (c & 4) ? bmax.z : bmin.z);
+            const glm::vec4 clip = mvp * glm::vec4(corner, 1.0f);
+            front[c] = clip.w > 0.0001f;
+            if (front[c]) {
+                const glm::vec3 n = glm::vec3(clip) / clip.w;
+                pts[c] = ImVec2((n.x * 0.5f + 0.5f) * width, (n.y * 0.5f + 0.5f) * height);
+            }
+        }
+
+        // vert = dynamique, bleu = statique, orange = ignore (enfant), plus vif si selectionne
+        const bool selected = std::find(selectedObjects.begin(), selectedObjects.end(), i) != selectedObjects.end();
+        const int alpha = selected ? 255 : 150;
+        ImU32 color = (o->bodyType == SceneObject::BodyType::Dynamic) ? IM_COL32(80, 230, 120, alpha) : IM_COL32(90, 160, 255, alpha);
+        if (o->parent >= 0) color = IM_COL32(255, 170, 60, alpha);
+
+        for (const auto& e : EDGES) {
+            if (front[e[0]] && front[e[1]]) dl->AddLine(pts[e[0]], pts[e[1]], color, selected ? 2.0f : 1.0f);
+        }
+    }
+}
+
 void Application::drawSunGizmo() {
     if (!showSunGizmo || isPlaying) return;
     if (glm::length(lightDirection) < 0.0001f) return;

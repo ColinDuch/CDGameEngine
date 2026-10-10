@@ -437,3 +437,6 @@ Dynamic=Dynamique
 Mass (kg)=Masse (kg)
 None: no collision. Static: solid, never moves. Dynamic: falls and collides.=Aucune : pas de collision. Statique : solide, ne bouge jamais. Dynamique : tombe et entre en collision.
 Ignored: child objects have no physics yet.=Ignoré : les objets enfants n'ont pas encore de physique.
+
+Show collisions=Afficher les collisions
+Wireframe of the physics shapes: green = dynamic, blue = static=Formes physiques en fil de fer : vert = dynamique, bleu = statique

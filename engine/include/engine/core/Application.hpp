@@ -115,6 +115,8 @@ private:
     bool showSunGizmo = true;
     glm::vec3 sunGizmoPos{0.0f, 0.0f, 8.0f};   // ancrage visuel (n'affecte pas l'eclairage)
     void drawSunGizmo();
+    void drawColliders();   // formes physiques en fil de fer
+    bool showColliders = true;
 
     bool askQuit = false;     // la popup doit s'ouvrir
     bool quitting = false;    // sortie confirmee

@@ -329,6 +329,8 @@ void Application::drawSettingsPanel() {
 
     if (ImGui::CollapsingHeader(Lang::tr("Snap / Alignment (Shift)"), ImGuiTreeNodeFlags_DefaultOpen)) {
         ImGui::TextDisabled("%s", Lang::tr("Hold Shift while manipulating."));
+        ImGui::Checkbox(Lang::tr("Show collisions"), &showColliders);
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Lang::tr("Wireframe of the physics shapes: green =dynamic, blue = static"));
         ImGui::TextDisabled("%s", Lang::tr("Ctrl+click a slider to type a value."));
         ImGui::SliderFloat(Lang::tr("Translation (tiles)"), &snapTranslate, 0.1f, 20.0f, "%.2f");
         ImGui::SliderFloat(Lang::tr("Rotation (degrees)"), &snapRotate, 1.0f, 180.0f, "%.0f");
@@ -654,6 +656,7 @@ void Application::buildUI() {
         updateBrush();
         drawSunGizmo();
         drawGizmo();
+        drawColliders();
         updateViewportPick();   // apres le gizmo : il a la priorite sur le clic
         drawGameInputPanel();
         drawInputPanel();
