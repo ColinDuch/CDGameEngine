@@ -997,11 +997,20 @@ void Application::startPlay() {
         if (o->parent >= 0) continue;   // un enfant suit son parent : pas encore gere
         if (o->meshIndex < 0 || o->meshIndex >= static_cast<int>(availableMeshes.size())) continue;
 
+        // le terrain affiche devient solide
+        if (terrain && terrainVisible) {
+            physics.addTerrain(terrain->heights(), terrain->getResX(), terrain->getResY(),
+                            terrain->getSizeX(), terrain->getSizeY(),
+                            terrain->position, terrain->orientation, terrain->scale);
+        }
+        
         const Mesh& mesh = *availableMeshes[o->meshIndex];
         const glm::vec3 center = (mesh.getBoundsMin() + mesh.getBoundsMax()) * 0.5f * o->scale;
         const glm::vec3 half = (mesh.getBoundsMax() - mesh.getBoundsMin()) * 0.5f * o->scale;
         physics.addBox(o->id, o->position, o->orientation, center, half,
             o->bodyType == SceneObject::BodyType::Dynamic, o->mass);
+
+    
     }
 
     for (auto& o : sceneObjects) o->stateMachine.reset();
