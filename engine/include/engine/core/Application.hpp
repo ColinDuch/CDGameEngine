@@ -117,6 +117,8 @@ private:
     void drawSunGizmo();
     void drawColliders();   // formes physiques en fil de fer
     bool showColliders = true;
+    // capsule d un personnage, deduite de son mesh: partagee par le play et l affichage
+    void characterCapsule(const SceneObject& o, float& radius, float& height, glm::vec3& feet) const;
 
     bool askQuit = false;     // la popup doit s'ouvrir
     bool quitting = false;    // sortie confirmee

@@ -1042,6 +1042,40 @@ void Application::redo() {
     sceneMessage = Lang::tr("Redone.");
 }
 
+// personnage : capsule debout, haute comme le mesh, epaisse comme sa profondeur
+// (la largeur compte les bras ecartes de la T pose, la profondeur non)
+void Application::characterCapsule(const SceneObject& o, float& radius, float& height, glm::vec3& feet) const {
+    const Mesh& mesh = *availableMeshes[o.meshIndex];
+    const glm::vec3 bmin = mesh.getBoundsMin(), bmax = mesh.getBoundsMax();
+    const glm::vec3 ext = (bmax - bmin) * glm::abs(o.scale);     // tailles du mesh, echelle appliquee
+    const glm::mat3 rot = glm::mat3_cast(o.orientation);
+
+    // quel axe du mesh pointe vers le haut du monde ? Un modele importe en Y-up et
+    // redresse par une rotation a sa hauteur sur Y, pas sur Z. rot[a] = ou va l axe a.
+    int up = 2;
+    float best = -1.0f;
+    for (int a = 0; a < 3; ++a) {
+        if (std::abs(rot[a].z) > best) {
+            best = std::abs(rot[a].z);
+            up = a;
+        }
+    }
+    height = ext[up];
+    // l epaisseur : la plus petite des deux autres tailles (la profondeur, pas les bras)
+    radius = std::min(0.5f * std::min(ext[(up + 1) % 3], ext[(up + 2) % 3]), 0.5f * height);
+
+    // les pieds : le point le plus bas de la boite tournee, au centre horizontal,
+    // en axes du MONDE par rapport a la position de l objet (la capsule ne tourne pas)
+    glm::vec3 lo(1e30f), hi(-1e30f);
+    for (int c = 0; c < 8; ++c) {
+        const glm::vec3 corner((c & 1) ? bmax.x : bmin.x, (c & 2) ? bmax.y : bmin.y, (c & 4) ? bmax.z : bmin.z);
+        const glm::vec3 p = rot * (corner * o.scale);
+        lo = glm::min(lo, p);
+        hi = glm::max(hi, p);
+    }
+    feet = glm::vec3(0.5f * (lo.x + hi.x), 0.5f * (lo.y + hi.y), lo.z);
+}
+
 /*
 formes de collision en fil de fer, dessinees par-dessus la scene
 elles sont deduites des objets eux-memes : en play, les objets physiques suivent la physique,
@@ -1057,6 +1091,16 @@ void Application::drawColliders() {
     const glm::mat4 viewProj = projectionMatrix * camera->getViewMatrix();
     ImDrawList* dl = ImGui::GetBackgroundDrawList();
 
+    // un segment du monde vers l ecran ; rien si un bout est derriere la camera 
+    auto line3D = [&](const glm::vec3& a, const glm::vec3& b, ImU32 color, float thickness) {
+        const glm::vec4 ca = viewProj * glm::vec4(a, 1.0f);
+        const glm::vec4 cb = viewProj * glm::vec4(b, 1.0f);
+        if (ca.w <= 0.0001f || cb.w <= 0.0001f) return;
+        const glm::vec3 na = glm::vec3(ca) / ca.w, nb = glm::vec3(cb) / cb.w;
+        dl->AddLine(ImVec2((na.x * 0.5f + 0.5f) * width, (na.y * 0.5f + 0.5f) * height),
+            ImVec2((nb.x * 0.5f + 0.5f) * width, (nb.y * 0.5f + 0.5f) * height), color, thickness);
+    };
+
     // les 12 aretes d une boite. Un coin est numerote par 3 bits : bit 0 x max, bit 1 = y max, bit 2 = z max
     static const int EDGES[12][2] = { {0, 1}, {2, 3}, {4, 5}, {6, 7},      // aretes selon x
                                       {0, 2}, {1, 3}, {4, 6}, {5, 7},      // selon y
@@ -1066,6 +1110,45 @@ void Application::drawColliders() {
         const auto& o = sceneObjects[i];
         if (o->bodyType == SceneObject::BodyType::None) continue;
         if (o->meshIndex < 0 || o->meshIndex >= static_cast<int>(availableMeshes.size())) continue;
+        // personnage : capsule debout (violette), comme celle que cree le Play
+        if (o->bodyType == SceneObject::BodyType::Character) {
+            const bool sel = std::find(selectedObjects.begin(), selectedObjects.end(), i) != selectedObjects.end();
+            const ImU32 color = (o->parent >= 0) ? IM_COL32(255, 170, 60, sel ? 255 : 150)
+                                                 : IM_COL32(200, 120, 255, sel ? 255 : 150);
+            const float thick = sel ? 2.0f : 1.0f;
+
+            float r, h;
+            glm::vec3 feet;
+            characterCapsule(*o, r, h, feet);
+            r = std::max(r, 0.05f);
+            const glm::vec3 base = o->position + feet;
+            const glm::vec3 c0 = base + glm::vec3(0.0f, 0.0f, r);                     // centre de la sphere du bas
+            const glm::vec3 c1 = base + glm::vec3(0.0f, 0.0f, std::max(h - r, r));    // ... et du haut
+
+            constexpr int SEG = 24;
+            for (int s = 0; s < SEG; ++s) {
+                const float a0 = 6.2831853f * s / SEG, a1 = 6.2831853f * (s + 1) / SEG;
+                const glm::vec3 p0(std::cos(a0) * r, std::sin(a0) * r, 0.0f);
+                const glm::vec3 p1(std::cos(a1) * r, std::sin(a1) * r, 0.0f);
+                line3D(c0 + p0, c0 + p1, color, thick);      // cercle du bas
+                line3D(c1 + p0, c1 + p1, color, thick);     // cercle du haut
+            }
+            for (int s = 0; s < SEG / 2; ++s) {     // demi-cercles des calottes
+                const float a0 = 3.1415927f * s / (SEG / 2), a1 = 3.1415927f * (s + 1) / (SEG / 2);
+                const glm::vec3 x0(std::cos(a0) * r, 0.0f, std::sin(a0) * r), x1(std::cos(a1) * r, 0.0f, std::sin(a1) * r);
+                const glm::vec3 y0(0.0f, std::cos(a0) * r, std::sin(a0) * r), y1(0.0f, std::cos(a1) * r, std::sin(a1) * r);
+                line3D(c1 + x0, c1 + x1, color, thick);
+                line3D(c1 + y0, c1 + y1, color, thick);
+                line3D(c0 - x0, c0 - x1, color, thick);
+                line3D(c0 - y0, c0 - y1, color, thick);
+            }
+            for (int s = 0; s < 4; ++s) {       // 4 aretes verticales
+                const float a = 1.5707963f * s;
+                const glm::vec3 p(std::cos(a) * r, std::sin(a) * r, 0.0f);
+                line3D(c0 + p, c1 + p, color, thick);
+            }
+            continue;
+        }
 
         const Mesh& mesh = *availableMeshes[o->meshIndex];
         const glm::vec3 bmin = mesh.getBoundsMin(), bmax = mesh.getBoundsMax();

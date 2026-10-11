@@ -1010,13 +1010,11 @@ void Application::startPlay() {
         const glm::vec3 center = (mesh.getBoundsMin() + mesh.getBoundsMax()) * 0.5f * o->scale;
         const glm::vec3 half = (mesh.getBoundsMax() - mesh.getBoundsMin()) * 0.5f * o->scale;
 
-        // personnage : capsule debout, haute comme le mesh, epaisse comme sa profondeur
-        // (la largeur compte les bras ecartes de la T pose, la profondeur non)
         if (o->bodyType == SceneObject::BodyType::Character) {
-            const glm::vec3 size = (mesh.getBoundsMax() - mesh.getBoundsMin()) * glm::abs(o->scale);
-            const float radius = std::min(0.5f * std::min(size.x, size.y), 0.5f * size.z);
-            const glm::vec3 feet(center.x, center.y, mesh.getBoundsMin().z * o->scale.z);
-            physics.addCharacter(o->id, o->position, o->orientation, radius, size.z, feet);
+            float radius, height;
+            glm::vec3 feet;
+            characterCapsule(*o, radius, height, feet);
+            physics.addCharacter(o->id, o->position, o->orientation, radius, height, feet);
             continue;
         }
 

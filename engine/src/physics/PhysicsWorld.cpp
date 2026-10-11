@@ -13,6 +13,8 @@
 #include <Jolt/Physics/Collision/Shape/HeightFieldShape.h>
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Character/CharacterVirtual.h>
+#include <Jolt/Physics/Collision/RayCast.h>
+#include <Jolt/Physics/Collision/CastResult.h>
 
 #include <algorithm>
 #include <thread>
@@ -301,6 +303,20 @@ void PhysicsWorld::addCharacter(uint32_t objectId, const glm::vec3& position, co
     settings.mMaxSlopeAngle = JPH::DegreesToRadians(45.0f); // au dela, il glisse
     // seul le bas de la capsule peut porter : un plafond touche par al tete n est pas un sol
     settings.mSupportingVolume = JPH::Plane(JPH::Vec3::sAxisZ(), -(footOffset.z + radius));
+
+    // marge de depart : des pieds jusqu a 50cm sous le sol (scult, placement a l oeil)
+    // remontent a la surface. Un sol plus haut que ca (un pont, un etage) n est pas touche.
+    constexpr float SPAWN_MARGIN = 0.5f;
+    glm::vec3 start = position;
+    const float feetZ = position.z + footOffset.z;
+    const glm::vec3 rayFrom(position.x + footOffset.x, position.y + footOffset.y, feetZ + SPAWN_MARGIN);
+    JPH::RRayCast ray(JPH::RVec3(toJolt(rayFrom)), JPH::Vec3(0.0f, 0.0f, -2.0f * SPAWN_MARGIN));    // longeur incluse
+    JPH::RayCastResult hit;
+    if (impl->system.GetNarrowPhaseQuery().CastRay(ray, hit, impl->system.GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
+        impl->system.GetDefaultLayerFilter(Layers::MOVING))) {
+        const float groundZ = rayFrom.z - 2.0f * SPAWN_MARGIN * hit.mFraction;
+        if (groundZ > feetZ) start.z += groundZ - feetZ;   // seulement si les pieds sont sous le sol
+    }
 
     Impl::Character c;
     c.character = new JPH::CharacterVirtual(&settings, JPH::RVec3(toJolt(position)), JPH::Quat::sIdentity(), &impl->system);
