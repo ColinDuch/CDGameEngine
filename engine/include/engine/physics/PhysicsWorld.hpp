@@ -36,6 +36,9 @@ class PhysicsWorld {
         void addCharacter(uint32_t objectId, const glm::vec3& position, const glm::quat& rotation,
             float radius, float height, const glm::vec3& footOffset);
 
+        // vitesse horizontale voulue d un personnage (m/s, axes du monde) ; la verticale reste a la physique
+        void setCharacterMove(uint32_t objectId, const glm::vec2& velocity);
+
         // terrain statique : grille de hauteurs resX x et resY (index = iy*resX + ix), centree, Z-up
         void addTerrain(const std::vector<float>& heights, int resX, int resY, float sizeX, float sizeY,
             const glm::vec3& position, const glm::quat& rotation, const glm::vec3& scale);

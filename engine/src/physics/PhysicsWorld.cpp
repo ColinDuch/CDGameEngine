@@ -92,7 +92,7 @@ struct PhysicsWorld::Impl {
     // personnages : ce ne sont pas des corps Jolt, mais des capsules deplacees a la main
     struct Character {
         JPH::Ref<JPH::CharacterVirtual> character;
-        glm::quat rotation;     // rotation d origine : le personnage reste debout
+        glm::vec2 move{ 0.0f };     // vitesse horizontale voulue, en m/s
     };
     std::unordered_map<uint32_t, Character> characters;
 
@@ -187,7 +187,7 @@ bool PhysicsWorld::getTransform(uint32_t objectId, glm::vec3& position, glm::qua
     if (c != impl->characters.end()) {
         const JPH::RVec3 p = c->second.character->GetPosition();
         position = glm::vec3(static_cast<float>(p.GetX()), static_cast<float>(p.GetY()), static_cast<float>(p.GetZ()));
-        rotation = c->second.rotation;  // la physique ne le fait pas pivoter
+        // la rotation n est pas touchee : elle reste celle de l objet, ce sont les scripts qui l orientent
         return true;
     }
 
@@ -320,22 +320,41 @@ void PhysicsWorld::addCharacter(uint32_t objectId, const glm::vec3& position, co
 
     Impl::Character c;
     c.character = new JPH::CharacterVirtual(&settings, JPH::RVec3(toJolt(position)), JPH::Quat::sIdentity(), &impl->system);
-    c.rotation = rotation;
+    (void)rotation;     // un  personnage reste debout : sa rotation ne regarde que l objet
     impl->characters[objectId] = c;
+}
+
+void PhysicsWorld::setCharacterMove(uint32_t objectId, const glm::vec2& velocity) {
+    const auto it = impl->characters.find(objectId);
+    if (it != impl->characters.end()) it->second.move = velocity;
 }
 
 void PhysicsWorld::updateCharacters() {
     const JPH::Vec3 gravity = impl->system.GetGravity();
     for (auto& [objectId, c] : impl->characters) {
-        // pose au sol : pas de vitesse verticale qui s accumule ; en l air : la gravite l accelere
-        JPH::Vec3 v =c.character->GetLinearVelocity();
-        if (c.character->GetGroundState() == JPH::CharacterVirtual::EGroundState::OnGround) v.SetZ(0.0f);
-        else v += gravity * FIXED_STEP;
-        c.character->SetLinearVelocity(v);
+        JPH::CharacterVirtual& ch = *c.character;
+        const JPH::CharacterVirtual::EGroundState ground = ch.GetGroundState();
+        JPH::Vec3 move(c.move.x, c.move.y, 0.0f);
 
-        c.character->Update(FIXED_STEP, gravity, 
-            impl->system.GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
-            impl->system.GetDefaultLayerFilter(Layers::MOVING),
-            {}, {}, impl->tempAllocator);
+        // pente trop raide : on retire la part du movement qui monte dedans, il ne peut que glisser
+        if (ground == JPH::CharacterVirtual::EGroundState::OnSteepGround) {
+            JPH::Vec3 n = ch.GetGroundNormal();
+            n.SetZ(0.0f);       // direction de la descente, a plat 
+            if (n.LengthSq() > 1e-6f) {
+                n = n.Normalized();
+                const float into = move.Dot(n);     // negatif = vers le haut de la pente
+                if (into < 0.0f) move -= into * n;
+            }
+        }
+
+        // verticale : nulle au sol ; en l air ou sur une pente trop raide, lma gravite s accumule
+        float vz = ch.GetLinearVelocity().GetZ();
+        if (ground == JPH::CharacterVirtual::EGroundState::OnGround) vz = 0.0f;
+        else vz += gravity.GetZ() * FIXED_STEP;
+        ch.SetLinearVelocity(JPH::Vec3(move.GetX(), move.GetY(), vz));
+
+        // Jolt fait glisser la capsule le long des obstacles : c est ce qui fait monter les pentes
+        ch.Update(FIXED_STEP, gravity, impl->system.GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
+            impl->system.GetDefaultLayerFilter(Layers::MOVING), {}, {}, impl->tempAllocator);
     }
 }

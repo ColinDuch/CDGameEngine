@@ -392,6 +392,17 @@ void Application::drawFrame() {
     updateCamera(deltaTime);
     if (isPlaying) updateGameplay(deltaTime);
     if (isPlaying) {
+        // temporaire (etape 7c) : les personnages suivent les actions de deplacement, en axes du monde
+        {
+            const int l = gameInput.find("move_left"), r = gameInput.find("move_right");
+            const int f = gameInput.find("move_forward"), b = gameInput.find("move_backward");
+            if (l >= 0 && r >= 0 && f >= 0 && b >= 0) {
+                const glm::vec2 dir(gameInput.value(r) - gameInput.value(l), gameInput.value(f) - gameInput.value(b));
+                for (const auto& o : sceneObjects) {
+                    if (o->bodyType == SceneObject::BodyType::Character) physics.setCharacterMove(o->id, dir * 3.0f);
+                }
+            }
+        }
         physics.step(deltaTime);    // apres les scripts, avant les animations
         // les objets suivent leurs corps physique
         for (auto& o : sceneObjects) physics.getTransform(o->id, o->position, o->orientation);
