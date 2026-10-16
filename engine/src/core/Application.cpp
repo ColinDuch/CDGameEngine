@@ -285,6 +285,7 @@ void Application::initScene() {
     scripts = std::make_unique<ScriptEngine>(sceneObjects);
     scripts->setWindow(window->getHandle());
     scripts->setGameInput(&gameInput);
+    scripts->setPhysics(&physics);
 
     orbitDistance = glm::length(camera->getPosition() - orbitTarget);
 

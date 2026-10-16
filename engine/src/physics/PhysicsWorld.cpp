@@ -93,6 +93,7 @@ struct PhysicsWorld::Impl {
     struct Character {
         JPH::Ref<JPH::CharacterVirtual> character;
         glm::vec2 move{ 0.0f };     // vitesse horizontale voulue, en m/s
+        float jump = 0.0f;      // saut demande, applique au prochain pas
     };
     std::unordered_map<uint32_t, Character> characters;
 
@@ -329,6 +330,34 @@ void PhysicsWorld::setCharacterMove(uint32_t objectId, const glm::vec2& velocity
     if (it != impl->characters.end()) it->second.move = velocity;
 }
 
+void PhysicsWorld::characterJump(uint32_t objectId, float speed) {
+    const auto it = impl->characters.find(objectId);
+    if (it != impl->characters.end()) it->second.jump = speed;
+}
+
+bool PhysicsWorld::isCharacter(uint32_t objectId) const {
+    return impl->characters.count(objectId) > 0;
+}
+
+bool PhysicsWorld::isCharacterGrounded(uint32_t objectId) const {
+    const auto it = impl->characters.find(objectId);
+    return it != impl->characters.end() && it->second.character->GetGroundState() == JPH::CharacterVirtual::EGroundState::OnGround;
+}
+
+bool PhysicsWorld::getVelocity(uint32_t objectId, glm::vec3& velocity) const {
+    JPH::Vec3 v;
+    const auto c = impl->characters.find(objectId);
+    if (c != impl->characters.end()) {
+        v = c->second.character->GetLinearVelocity();
+    } else {
+        const auto b = impl->bodies.find(objectId);
+        if (b == impl->bodies.end()) return false;
+        v = impl->system.GetBodyInterface().GetLinearVelocity(b->second);
+    }
+    velocity = glm::vec3(v.GetX(), v.GetY(), v.GetZ());
+    return true;
+}
+
 void PhysicsWorld::updateCharacters() {
     const JPH::Vec3 gravity = impl->system.GetGravity();
     for (auto& [objectId, c] : impl->characters) {
@@ -347,10 +376,17 @@ void PhysicsWorld::updateCharacters() {
             }
         }
 
-        // verticale : nulle au sol ; en l air ou sur une pente trop raide, lma gravite s accumule
+        // verticale : au sol, on s y pose (vitesse nulle) sauf si on vient de sauter et qu on monte encore ;
+        // en l air ou sur une pente trop raide, la gravite s accumule
         float vz = ch.GetLinearVelocity().GetZ();
-        if (ground == JPH::CharacterVirtual::EGroundState::OnGround) vz = 0.0f;
+        const bool onGround = ground == JPH::CharacterVirtual::EGroundState::OnGround;
+        if (onGround && vz <= 0.1f) vz = 0.0f;
         else vz += gravity.GetZ() * FIXED_STEP;
+
+        // saut : seulement depuis un sol praticable, et une seule fois par demande
+        if (c.jump > 0.0f && onGround) vz = c.jump;
+        c.jump = 0.0f;
+
         ch.SetLinearVelocity(JPH::Vec3(move.GetX(), move.GetY(), vz));
 
         // Jolt fait glisser la capsule le long des obstacles : c est ce qui fait monter les pentes

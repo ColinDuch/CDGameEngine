@@ -39,6 +39,11 @@ class PhysicsWorld {
         // vitesse horizontale voulue d un personnage (m/s, axes du monde) ; la verticale reste a la physique
         void setCharacterMove(uint32_t objectId, const glm::vec2& velocity);
 
+        void characterJump(uint32_t objectId, float speed);     // vitesse verticale donnee au prochain pas
+        bool isCharacter(uint32_t objectId) const;
+        bool isCharacterGrounded(uint32_t objectId) const;      // pose sur un sol praticable
+        bool getVelocity(uint32_t objectId, glm::vec3& velocity) const;     // personnage ou corps, en m/s
+
         // terrain statique : grille de hauteurs resX x et resY (index = iy*resX + ix), centree, Z-up
         void addTerrain(const std::vector<float>& heights, int resX, int resY, float sizeX, float sizeY,
             const glm::vec3& position, const glm::quat& rotation, const glm::vec3& scale);

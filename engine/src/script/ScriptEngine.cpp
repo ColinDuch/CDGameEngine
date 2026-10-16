@@ -6,6 +6,8 @@
 #include <engine/core/Localization.hpp>
 #include <engine/core/GameInput.hpp>
 
+#include <engine/physics/PhysicsWorld.hpp>
+
 #include <engine/renderer/SceneObject.hpp>
 
 extern "C" {
@@ -109,6 +111,10 @@ void ScriptEngine::registerApi(lua_State* L) {
     reg("getActionValue", &ScriptEngine::api_getActionValue);
     reg("getAxis", &ScriptEngine::api_getAxis);
     reg("wasSequenceDone", &ScriptEngine::api_wasSequenceDone);
+    reg("move", &ScriptEngine::api_move);
+    reg("jump", &ScriptEngine::api_jump);
+    reg("isGrounded", &ScriptEngine::api_isGrounded);
+    reg("getVelocity", &ScriptEngine::api_getVelocity);
 
     lua_setglobal(L, "Engine");
 }
@@ -274,6 +280,57 @@ int ScriptEngine::api_wasSequenceDone(lua_State* L) {
     if (s < 0) return luaL_error(L, Lang::tr("unknown sequence: %s"), name);
     lua_pushboolean(L, in->sequenceDone(s) ? 1 : 0);
     return 1;
+}
+
+/*
+---------------------------------------------------------
+Personnage (Physique : personnage dans l'inspecteur)
+---------------------------------------------------------
+*/
+
+namespace   {
+    // l objet a l argument 1, qui doit etre un personnage 
+    uint32_t characterArg(lua_State* L, PhysicsWorld* physics, SceneObject* o) {
+        if (!physics || !physics->isCharacter(o->id))
+            luaL_error(L, Lang::tr("'%s' is not a Character (Physics, in the Inspector)"), o->name.c_str());
+        return o->id;
+    }
+}
+
+// move(self, vx, vy) : vitesse horizontale voulue en m/s, axes du monde
+int ScriptEngine::api_move(lua_State* L) {
+    PhysicsWorld* physics = selfFromUpvalue(L)->physics;
+    const uint32_t id = characterArg(L, physics, objectAt(L, 1));
+    physics->setCharacterMove(id, glm::vec2(static_cast<float>(luaL_checknumber(L, 2)),
+        static_cast<float>(luaL_checknumber(L, 3))));
+    return 0;
+}
+
+// jump(self, vitesse) : saute si le personnage est au sol
+int ScriptEngine::api_jump(lua_State* L) {
+    PhysicsWorld* physics = selfFromUpvalue(L)->physics;
+    const uint32_t id = characterArg(L, physics, objectAt(L, 1));
+    physics->characterJump(id, static_cast<float>(luaL_checknumber(L, 2)));
+    return 0;
+}
+
+int ScriptEngine::api_isGrounded(lua_State* L) {
+    PhysicsWorld* physics = selfFromUpvalue(L)->physics;
+    const uint32_t id = characterArg(L, physics, objectAt(L, 1));
+    lua_pushboolean(L, physics->isCharacterGrounded(id) ? 1 : 0);
+    return 1;
+}
+
+// getVelocity(i) : vx, vy, vz en m/s ; 0, 0, 0 pour un objet sans physique
+int ScriptEngine::api_getVelocity(lua_State* L) {
+    PhysicsWorld* physics = selfFromUpvalue(L)->physics;
+    SceneObject* o = objectAt(L, 1);
+    glm::vec3 v(0.0f);
+    if (physics) physics->getVelocity(o->id, v);
+    lua_pushnumber(L, v.x);
+    lua_pushnumber(L, v.y);
+    lua_pushnumber(L, v.z);
+    return 3;
 }
 
 /*

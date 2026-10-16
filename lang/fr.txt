@@ -442,3 +442,4 @@ Show collisions=Afficher les collisions
 Wireframe of the physics shapes: green for dynamic, blue for static=Formes physiques en fil de fer : vert pour dynamique, bleu pour statique
 
 Character=Personnage
+'%s' is not a Character (Physics, in the Inspector)='%s' n'est pas un Personnage (Physique, dans l'Inspecteur)
