@@ -9,6 +9,7 @@ struct GLFWwindow;
 class SceneObject;
 class GameInput;
 class PhysicsWorld;
+class Camera;
 
 // Un etat Lua par script : le script de scene (code/main.lua) et un script
 // par objet (SceneObject::scriptPath). Chaque script recoit un global `self`
@@ -24,6 +25,7 @@ public:
     void setWindow(GLFWwindow* w) { windowHandle = w; }
     void setGameInput(const GameInput* g) { gameInput = g; }
     void setPhysics(PhysicsWorld* p) { physics = p; }
+    void setCamera(const Camera* c) { camera = c; }
 
     void loadProject(const std::string& projectDir, std::string& outStatus);
     void callStart(std::string& outError);
@@ -70,11 +72,13 @@ private:
     static int api_jump(lua_State* L);
     static int api_isGrounded(lua_State* L);
     static int api_getVelocity(lua_State* L);
+    static int api_getCameraYaw(lua_State* L);
 
     std::vector<Instance> instances;
     std::vector<std::shared_ptr<SceneObject>>& objects;
     GLFWwindow* windowHandle = nullptr;
     const GameInput* gameInput = nullptr;
     PhysicsWorld* physics = nullptr;
+    const Camera* camera = nullptr;
     std::string logText;
 };

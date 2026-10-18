@@ -9,6 +9,7 @@
 #include <engine/physics/PhysicsWorld.hpp>
 
 #include <engine/renderer/SceneObject.hpp>
+#include <engine/renderer/Camera.hpp>
 
 extern "C" {
     #include <lua.h>
@@ -115,6 +116,7 @@ void ScriptEngine::registerApi(lua_State* L) {
     reg("jump", &ScriptEngine::api_jump);
     reg("isGrounded", &ScriptEngine::api_isGrounded);
     reg("getVelocity", &ScriptEngine::api_getVelocity);
+    reg("getCameraYaw", &ScriptEngine::api_getCameraYaw);
 
     lua_setglobal(L, "Engine");
 }
@@ -331,6 +333,14 @@ int ScriptEngine::api_getVelocity(lua_State* L) {
     lua_pushnumber(L, v.y);
     lua_pushnumber(L, v.z);
     return 3;
+}
+
+// getCameraYaw() : orientation horizontale de la camera, en degres (0 = vers +X, 90 = vers +Y)
+// sert a deplacer un personnage par rapport a ce que voit le joueur 
+int ScriptEngine::api_getCameraYaw(lua_State* L) {
+    const Camera* camera = selfFromUpvalue(L)->camera;
+    lua_pushnumber(L, camera ? camera->getYaw() : 0.0f);
+    return 1;
 }
 
 /*

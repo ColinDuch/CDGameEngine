@@ -286,6 +286,7 @@ void Application::initScene() {
     scripts->setWindow(window->getHandle());
     scripts->setGameInput(&gameInput);
     scripts->setPhysics(&physics);
+    scripts->setCamera(camera.get());
 
     orbitDistance = glm::length(camera->getPosition() - orbitTarget);
 
