@@ -1083,7 +1083,7 @@ void Application::drawAnimationPanel() {
         }
 
 
-        if (obj->animClip >= 0) {
+        if (obj->animClip >= 0 && obj->animClip < static_cast<int>(clips.size())) {
             const AnimationClip& c= clips[obj->animClip];
             ImGui::Checkbox(Lang::tr("Playing"), &obj->animPlaying);
             ImGui::SameLine();
@@ -1092,7 +1092,34 @@ void Application::drawAnimationPanel() {
             ImGui::SliderFloat(Lang::tr("Time"), &obj->animTime, 0.0f, c.duration > 0.0f ? c.duration : 1.0f, "%.2f s");
             ImGui::DragFloat(Lang::tr("Blend time"), &obj->animBlendDuration, 0.01f, 0.0f, 1.0f, "%.2f s");
             ImGui::TextDisabled("%s : %.2f s, %d %s", c.name.c_str(),c.duration, static_cast<int>(c.channels.size()), Lang::tr("channels"));
+
+            // suppression, avec confirmation : Ctrl+Z ne peut pas la defaire
+            if (!isPlaying && ImGui::Button(Lang::tr("Delete clip"))) {
+                clipToDelete = obj->animClip;
+                ImGui::OpenPopup("###deleteclip");
+            }
         }
+    }
+
+    // fenetre de confirmation, hors du bloc du clip : elle reste ouverte meme si la selection change
+    const std::string title = std::string(Lang::tr("Delete clip?")) + "###deleteclip";
+    if (ImGui::BeginPopupModal(title.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        const bool valid = clipToDelete >= 0 && clipToDelete < static_cast<int>(clips.size());
+        if (valid) {
+            ImGui::TextUnformatted(Lang::fmt("Delete the clip '%s'?", clips[clipToDelete].name.c_str()).c_str());
+            ImGui::TextDisabled("%s", Lang::tr("Objects playing it return to the bind pose. Saving makes it permanent."));
+        }
+        if (ImGui::Button(Lang::tr("Remove")) && valid) {
+            deleteClip(meshIdx, clipToDelete);
+            clipToDelete = -1;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button(Lang::tr("Cancel")) || !valid) {
+            clipToDelete = -1;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
     }
 
     ImGui::End();

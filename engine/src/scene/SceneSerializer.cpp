@@ -55,7 +55,8 @@ void SceneSerializer::save(const std::string& path,
                            const EnvironmentData& envData,
                            const std::vector<MaterialData>& materialsData, 
                            const std::vector<AnimationRefData>& animationsData,
-                           const std::vector<NotifyData>& notifiesData) {
+                           const std::vector<NotifyData>& notifiesData,
+                           const std::vector<RemoveClipData>& removedClips) {
     JsonWriter w;
     w.beginObject();
 
@@ -162,13 +163,13 @@ void SceneSerializer::save(const std::string& path,
         w.key("name"); w.value(m.name);
         writeVec4(w, "baseColor", m.baseColor);
         writeVec4(w, "emissive",  m.emissive);
-        w.key("metallic");       w.value(static_cast<double>(m.metallic));
-        w.key("roughness");      w.value(static_cast<double>(m.roughness));
-        w.key("aoStrength");     w.value(static_cast<double>(m.aoStrength));
+        w.key("metallic"); w.value(static_cast<double>(m.metallic));
+        w.key("roughness"); w.value(static_cast<double>(m.roughness));
+        w.key("aoStrength"); w.value(static_cast<double>(m.aoStrength));
         w.key("normalStrength"); w.value(static_cast<double>(m.normalStrength));
-        w.key("heightScale");    w.value(static_cast<double>(m.heightScale));
-        w.key("alphaCutoff");    w.value(static_cast<double>(m.alphaCutoff));
-        w.key("uvTiling");       w.value(static_cast<double>(m.uvTiling));
+        w.key("heightScale"); w.value(static_cast<double>(m.heightScale));
+        w.key("alphaCutoff"); w.value(static_cast<double>(m.alphaCutoff));
+        w.key("uvTiling"); w.value(static_cast<double>(m.uvTiling));
         w.key("maps");
         w.beginArray();
         for (int i = 0; i < 8; ++i) w.value(m.mapPaths[i]);
@@ -195,6 +196,16 @@ void SceneSerializer::save(const std::string& path,
         w.key("clip"); w.value(note.clipName);
         w.key("time"); w.value(static_cast<double>(note.time));
         w.key("name"); w.value(note.name);
+        w.endObject();
+    }
+    w.endArray();
+
+    w.key("removedClips");
+    w.beginArray();
+    for (const auto& rc : removedClips) {
+        w.beginObject();
+        w.key("mesh"); w.value(rc.meshName);
+        w.key("clip"); w.value(rc.clipName);
         w.endObject();
     }
     w.endArray();
@@ -258,21 +269,21 @@ SceneData SceneSerializer::load(const std::string& path) {
 
     if (root.has("terrain")) {
         const JsonValue& t = root["terrain"];
-        scene.terrain.hasTerrain    = true;
-        scene.terrain.resX          = static_cast<int>(t["resX"].asDouble());
-        scene.terrain.resY          = static_cast<int>(t["resY"].asDouble());
-        scene.terrain.sizeX         = static_cast<float>(t["sizeX"].asDouble());
-        scene.terrain.sizeY         = static_cast<float>(t["sizeY"].asDouble());
-        scene.terrain.uvTiling      = static_cast<float>(t["uvTiling"].asDouble());
-        scene.terrain.renderMode    = static_cast<int>(t["renderMode"].asDouble());
-        scene.terrain.position      = readVec3(t["position"]);
-        scene.terrain.rotation      = readVec3(t["rotation"]);
-        scene.terrain.scale         = readVec3(t["scale"]);
+        scene.terrain.hasTerrain = true;
+        scene.terrain.resX = static_cast<int>(t["resX"].asDouble());
+        scene.terrain.resY = static_cast<int>(t["resY"].asDouble());
+        scene.terrain.sizeX = static_cast<float>(t["sizeX"].asDouble());
+        scene.terrain.sizeY = static_cast<float>(t["sizeY"].asDouble());
+        scene.terrain.uvTiling = static_cast<float>(t["uvTiling"].asDouble());
+        scene.terrain.renderMode = static_cast<int>(t["renderMode"].asDouble());
+        scene.terrain.position = readVec3(t["position"]);
+        scene.terrain.rotation = readVec3(t["rotation"]);
+        scene.terrain.scale = readVec3(t["scale"]);
         const JsonValue& L = t["layers"];
         scene.terrain.layers = glm::vec4(
             static_cast<float>(L[0].asDouble()), static_cast<float>(L[1].asDouble()),
             static_cast<float>(L[2].asDouble()), static_cast<float>(L[3].asDouble()));
-        scene.terrain.texturePath   = t["texturePath"].asString();
+        scene.terrain.texturePath = t["texturePath"].asString();
         scene.terrain.heightmapFile = t["heightmapFile"].asString();
         if (t.has("layerMaterial")) {
             const JsonValue& lm = t["layerMaterial"];
@@ -283,14 +294,14 @@ SceneData SceneSerializer::load(const std::string& path) {
 
     if (root.has("environment")) {
         const JsonValue& e = root["environment"];
-        scene.environment.envPath        = e["envPath"].asString();
-        scene.environment.exposure       = static_cast<float>(e["exposure"].asDouble());
-        scene.environment.envIntensity   = static_cast<float>(e["envIntensity"].asDouble());
-        scene.environment.showSky        = e["showSky"].asDouble() != 0.0;
+        scene.environment.envPath = e["envPath"].asString();
+        scene.environment.exposure = static_cast<float>(e["exposure"].asDouble());
+        scene.environment.envIntensity = static_cast<float>(e["envIntensity"].asDouble());
+        scene.environment.showSky = e["showSky"].asDouble() != 0.0;
         scene.environment.lightDirection = readVec3(e["lightDirection"]);
-        scene.environment.lightColor     = readVec3(e["lightColor"]);
+        scene.environment.lightColor = readVec3(e["lightColor"]);
         scene.environment.lightIntensity = static_cast<float>(e["lightIntensity"].asDouble());
-        scene.environment.ambientStrength= static_cast<float>(e["ambientStrength"].asDouble());
+        scene.environment.ambientStrength = static_cast<float>(e["ambientStrength"].asDouble());
     }
 
     if (root.has("materials")) {
@@ -298,16 +309,16 @@ SceneData SceneSerializer::load(const std::string& path) {
         for (size_t i = 0; i < arr.size(); ++i) {
             const JsonValue& e = arr[i];
             MaterialData m;
-            m.name           = e["name"].asString();
-            m.baseColor      = readVec4(e["baseColor"]);
-            m.emissive       = readVec4(e["emissive"]);
-            m.metallic       = static_cast<float>(e["metallic"].asDouble());
-            m.roughness      = static_cast<float>(e["roughness"].asDouble());
-            m.aoStrength     = static_cast<float>(e["aoStrength"].asDouble());
+            m.name = e["name"].asString();
+            m.baseColor = readVec4(e["baseColor"]);
+            m.emissive = readVec4(e["emissive"]);
+            m.metallic = static_cast<float>(e["metallic"].asDouble());
+            m.roughness = static_cast<float>(e["roughness"].asDouble());
+            m.aoStrength = static_cast<float>(e["aoStrength"].asDouble());
             m.normalStrength = static_cast<float>(e["normalStrength"].asDouble());
-            m.heightScale    = static_cast<float>(e["heightScale"].asDouble());
-            m.alphaCutoff    = static_cast<float>(e["alphaCutoff"].asDouble());
-            m.uvTiling       = static_cast<float>(e["uvTiling"].asDouble());
+            m.heightScale = static_cast<float>(e["heightScale"].asDouble());
+            m.alphaCutoff = static_cast<float>(e["alphaCutoff"].asDouble());
+            m.uvTiling = static_cast<float>(e["uvTiling"].asDouble());
             const JsonValue& maps = e["maps"];
             for (int k = 0; k < 8 && k < static_cast<int>(maps.size()); ++k)
                 m.mapPaths[k] = maps[k].asString();
@@ -338,6 +349,15 @@ SceneData SceneSerializer::load(const std::string& path) {
             nd.name = n.has("name") ? n["name"].asString() : std::string("");
             if (nd.meshName.empty() || nd.clipName.empty() || nd.name.empty()) continue;
             scene.notifies.push_back(nd);
+        }
+    }
+
+    if (root.has("removedClips") && root["removedClips"].isArray()) {
+        for (const auto& r : root["removedClips"].asArray()) {
+            RemoveClipData rc;
+            rc.meshName = (r.has("mesh") && r["mesh"].isString()) ? r["mesh"].asString() : std::string("");
+            rc.clipName = (r.has("clip") && r["clip"].isString()) ? r["clip"].asString() : std::string("");
+            if (!rc.meshName.empty() && !rc.clipName.empty()) scene.removedClips.push_back(rc);
         }
     }
 

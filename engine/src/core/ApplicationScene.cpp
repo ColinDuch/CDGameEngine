@@ -379,7 +379,7 @@ void Application::saveScene() {
             std::cerr << "[save] " << e.what() << std::endl;
         }
 
-        SceneSerializer::save(scenePath.string(), sceneObjects, availableMeshes, *camera, td, ed, mats, loadAnimations, notifiesData);
+        SceneSerializer::save(scenePath.string(), sceneObjects, availableMeshes, *camera, td, ed, mats, loadAnimations, notifiesData, removedClips);
         std::cout << "[save] " << sceneObjects.size() << " objets -> "
                   << scenePath.string() << std::endl;
         sceneMessage = Lang::fmt("Project saved: %s", currentProjectDir.c_str());
@@ -557,6 +557,17 @@ void Application::loadScene() {
                     sceneMessage += " | " + Lang::fmt("Animation skipped: %s", e.what());
                 }
                 break;
+            }
+        }
+
+        // clips supprimes dans l editeur : retires une fois tout charge 
+        removedClips = scene.removedClips;
+        for (const auto& rc : removedClips) {
+            for (size_t m = 0; m < availableMeshes.size() && m < meshNames.size(); ++m) {
+                if (meshNames[m] != rc.meshName) continue;
+                auto& cl = availableMeshes[m]->getClipsMutable();
+                cl.erase(std::remove_if(cl.begin(), cl.end(),
+                [&](const AnimationClip& c) { return c.name == rc.clipName; }), cl.end());
             }
         }
 
@@ -915,6 +926,14 @@ void Application::drawFileDialogs() {
                 try {
                     auto newClips = Model::loadAnimations(varPath, availableMeshes[meshIdx]->getSkeleton());
                     availableMeshes[meshIdx]->addClips(newClips);
+
+                    // recharger un fichier fait revenir ses clips, meme s ils avaient ete supprimes
+                    for (const auto& c : newClips) {
+                        removedClips.erase(std::remove_if(removedClips.begin(), removedClips.end(),
+                        [&](const RemoveClipData& rc) { return rc.meshName == meshNames[meshIdx] 
+                        && rc.clipName == c.name; }), removedClips.end());
+                    }
+
                     loadAnimations.push_back({ meshNames[meshIdx], varPath });
                     sceneMessage = Lang::fmt("Clips added: %d", static_cast<int>(newClips.size()));
                 } catch (const std::exception& e) {
@@ -1100,4 +1119,31 @@ void Application::drawStartupPanel() {
 
         ImGui::EndPopup();
     }
+}
+
+void Application::deleteClip(int meshIdx, int clipIdx) {
+    if (meshIdx < 0 || meshIdx >= static_cast<int>(availableMeshes.size())) return;
+    auto& clips = availableMeshes[meshIdx]->getClipsMutable();
+    if (clipIdx < 0 || clipIdx >= static_cast<int>(clips.size())) return;
+
+    // le clip peut venir du modele lui-meme ou d un fichier qui en contient d autres :
+    // on le note pour le retirer aussi aux prochains chargements 
+    removedClips.push_back({ meshNames[meshIdx], clips[clipIdx].name });
+    sceneMessage = Lang::fmt("Clip removed: %s", clips[clipIdx].name.c_str());
+    clips.erase(clips.begin() + clipIdx);
+
+    // les objets de ce mesh designent leurs clips par index : ceux d apres se decalent 
+    auto fix = [clipIdx](int& c) {
+        if (c == clipIdx) c = -1;   // il jouait ce clip : retour a la pose de reference
+        else if (c > clipIdx) --c;
+    };
+    for (auto& o : sceneObjects) {
+        if (o->meshIndex != meshIdx) continue;
+        fix(o->animClip);
+        fix(o->animPrevClip);
+    }
+
+    // l historique d annulation garde les anciens index de clips : il ne serait plus juste
+    undoStack.clear();
+    redoStack.clear();
 }

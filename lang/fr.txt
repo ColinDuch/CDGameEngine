@@ -443,3 +443,9 @@ Wireframe of the physics shapes: green for dynamic, blue for static=Formes physi
 
 Character=Personnage
 '%s' is not a Character (Physics, in the Inspector)='%s' n'est pas un Personnage (Physique, dans l'Inspecteur)
+
+Delete clip=Supprimer le clip
+Delete clip?=Supprimer le clip ?
+Delete the clip '%s'?=Supprimer le clip « %s » ?
+Objects playing it return to the bind pose. Saving makes it permanent.=Les objets qui le jouent reviennent à la pose de référence. L'enregistrement rend la suppression définitive.
+Clip removed: %s=Clip supprimé : %s

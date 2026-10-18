@@ -260,8 +260,8 @@ void Application::loadBuiltinMeshes() {
     }
     for (size_t i= 0; i < availableMeshes.size(); ++i) {
         std::cout <<"[lib] " <<i << " : "
-                  << (i < meshNames.size() ? meshNames[i] : std::string("<NO NAME"))
-                  << (availableMeshes[i]->isSkinned() ? "   [skinne]" : "") << std::endl;
+            << (i < meshNames.size() ? meshNames[i] : std::string("<NO NAME"))
+            << (availableMeshes[i]->isSkinned() ? "   [skinne]" : "") << std::endl;
     }
     std::cout <<"[lib] " <<availableMeshes.size() << " meshes / " << meshNames.size() << " names" << std::endl;
     builtinMeshCount = availableMeshes.size();
