@@ -449,3 +449,6 @@ Delete clip?=Supprimer le clip ?
 Delete the clip '%s'?=Supprimer le clip « %s » ?
 Objects playing it return to the bind pose. Saving makes it permanent.=Les objets qui le jouent reviennent à la pose de référence. L'enregistrement rend la suppression définitive.
 Clip removed: %s=Clip supprimé : %s
+
+In place=Sur place
+The body no longer moves away: the movement comes from the physics, not the animation.=Le corps ne s'éloigne plus : le déplacement vient de la physique, pas de l'animation.

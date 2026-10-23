@@ -1088,6 +1088,11 @@ void Application::drawAnimationPanel() {
             ImGui::Checkbox(Lang::tr("Playing"), &obj->animPlaying);
             ImGui::SameLine();
             ImGui::Checkbox(Lang::tr("Loop"), &obj->animLoop);
+            ImGui::SameLine();
+            ImGui::Checkbox(Lang::tr("In place"), &mesh->getClipsMutable()[obj->animClip].inPlace);
+            if (ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("%s", Lang::tr("The body no longer moves away: the movement comes from the physics, not the animation."));
+            }
             ImGui::DragFloat(Lang::tr("Speed"), &obj->animSpeed, 0.01f, -3.0f, 3.0f, "%.2f");
             ImGui::SliderFloat(Lang::tr("Time"), &obj->animTime, 0.0f, c.duration > 0.0f ? c.duration : 1.0f, "%.2f s");
             ImGui::DragFloat(Lang::tr("Blend time"), &obj->animBlendDuration, 0.01f, 0.0f, 1.0f, "%.2f s");

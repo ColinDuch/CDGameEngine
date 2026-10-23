@@ -35,6 +35,7 @@ struct AnimationClip {
     float fps = 30.0f;
     std::vector<AnimChannel> channels;
     std::vector<AnimNotify> notifies;
+    bool inPlace = false;   //"sur place" : le déplacement de la racine est retire
 
     /*
     transformation locale a l'instant t, et les os non animes reste ou ils sont

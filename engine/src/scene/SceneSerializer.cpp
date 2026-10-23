@@ -56,7 +56,8 @@ void SceneSerializer::save(const std::string& path,
                            const std::vector<MaterialData>& materialsData, 
                            const std::vector<AnimationRefData>& animationsData,
                            const std::vector<NotifyData>& notifiesData,
-                           const std::vector<RemoveClipData>& removedClips) {
+                           const std::vector<RemovedClipData>& removedClips,
+                           const std::vector<RemovedClipData>& inPlaceClips) {
     JsonWriter w;
     w.beginObject();
 
@@ -210,6 +211,16 @@ void SceneSerializer::save(const std::string& path,
     }
     w.endArray();
 
+    w.key("inPlaceClips");
+    w.beginArray();
+    for (const auto& ip : inPlaceClips) {
+        w.beginObject();
+        w.key("mesh"); w.value(ip.meshName);
+        w.key("clip"); w.value(ip.clipName);
+        w.endObject();
+    }
+    w.endArray();
+
     w.endObject();   // ferme la RACINE
 
     std::ofstream file(path);
@@ -352,12 +363,12 @@ SceneData SceneSerializer::load(const std::string& path) {
         }
     }
 
-    if (root.has("removedClips") && root["removedClips"].isArray()) {
-        for (const auto& r : root["removedClips"].asArray()) {
-            RemoveClipData rc;
-            rc.meshName = (r.has("mesh") && r["mesh"].isString()) ? r["mesh"].asString() : std::string("");
-            rc.clipName = (r.has("clip") && r["clip"].isString()) ? r["clip"].asString() : std::string("");
-            if (!rc.meshName.empty() && !rc.clipName.empty()) scene.removedClips.push_back(rc);
+    if (root.has("inPlaceClips") && root["inPlaceClips"].isArray()) {
+        for (const auto& r : root["inPlaceClips"].asArray()) {
+            RemovedClipData ip;
+            ip.meshName = (r.has("mesh") && r["mesh"].isString()) ? r["mesh"].asString() : std::string("");
+            ip.clipName = (r.has("clip") && r["clip"].isString()) ? r["clip"].asString() : std::string("");
+            if (!ip.meshName.empty() && !ip.clipName.empty()) scene.inPlaceClips.push_back(ip);
         }
     }
 

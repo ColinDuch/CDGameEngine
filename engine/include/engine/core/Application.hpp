@@ -409,7 +409,7 @@ private:
     std::vector<std::unique_ptr<BoneBuffer>> bonePool;
     void updateAnimations(float dt);
     std::vector<AnimationRefData> loadAnimations;
-    std::vector<RemoveClipData> removedClips;   // clips supprimes, retires a chaque chargement
+    std::vector<RemovedClipData> removedClips;   // clips supprimes, retires a chaque chargement
     void deleteClip(int meshIdx, int clipIdx);
     int clipToDelete = -1;  // clip en attente de confirmation
     std::vector<std::shared_ptr<AnimStateMachineAsset>> animMachines;   //assets partages

@@ -361,6 +361,14 @@ void Application::saveScene() {
             copyAsset(a.file, "anims");
         }
 
+        // les clips "sur place"
+        std::vector<RemovedClipData> inPlaceClips;
+        for (size_t m = 0; m < availableMeshes.size() && m < meshNames.size(); ++m) {
+            for (const auto& cl : availableMeshes[m]->getClips()) {
+                if (cl.inPlace) inPlaceClips.push_back({ meshNames[m], cl.name });
+            }
+        }
+
         std::vector<NotifyData> notifiesData;
         for (size_t m = 0; m <availableMeshes.size(); ++m) {
             if (!availableMeshes[m]->isSkinned()) continue;
@@ -379,7 +387,7 @@ void Application::saveScene() {
             std::cerr << "[save] " << e.what() << std::endl;
         }
 
-        SceneSerializer::save(scenePath.string(), sceneObjects, availableMeshes, *camera, td, ed, mats, loadAnimations, notifiesData, removedClips);
+                SceneSerializer::save(scenePath.string(), sceneObjects, availableMeshes, *camera, td, ed, mats, loadAnimations, notifiesData, removedClips, inPlaceClips);
         std::cout << "[save] " << sceneObjects.size() << " objets -> "
                   << scenePath.string() << std::endl;
         sceneMessage = Lang::fmt("Project saved: %s", currentProjectDir.c_str());
@@ -568,6 +576,15 @@ void Application::loadScene() {
                 auto& cl = availableMeshes[m]->getClipsMutable();
                 cl.erase(std::remove_if(cl.begin(), cl.end(),
                 [&](const AnimationClip& c) { return c.name == rc.clipName; }), cl.end());
+            }
+        }
+
+        for (const auto& ip : scene.inPlaceClips) {
+            for (size_t m = 0; m < availableMeshes.size() && m < meshNames.size(); ++m) {
+                if (meshNames[m] != ip.meshName) continue;
+                for (auto& cl : availableMeshes[m]->getClipsMutable()) {
+                    if (cl.name == ip.clipName) cl.inPlace = true;
+                }
             }
         }
 
@@ -930,7 +947,7 @@ void Application::drawFileDialogs() {
                     // recharger un fichier fait revenir ses clips, meme s ils avaient ete supprimes
                     for (const auto& c : newClips) {
                         removedClips.erase(std::remove_if(removedClips.begin(), removedClips.end(),
-                        [&](const RemoveClipData& rc) { return rc.meshName == meshNames[meshIdx] 
+                        [&](const RemovedClipData& rc) { return rc.meshName == meshNames[meshIdx] 
                         && rc.clipName == c.name; }), removedClips.end());
                     }
 

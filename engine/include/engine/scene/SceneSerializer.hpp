@@ -12,7 +12,7 @@ struct AnimationRefData {
     std::string file;  //chemin du fbx relatif au projet
 };
 
-struct RemoveClipData {
+struct RemovedClipData {
     std::string meshName;
     std::string clipName;
 };
@@ -97,7 +97,8 @@ struct SceneData {
     std::vector<MaterialData> materials;
     std::vector<AnimationRefData> animations;
     std::vector<NotifyData> notifies;
-    std::vector<RemoveClipData> removedClips;
+    std::vector<RemovedClipData> removedClips;
+    std::vector<RemovedClipData> inPlaceClips;   // meme forme : un clip designe par mesh + nom
 };
 
 namespace SceneSerializer {
@@ -110,7 +111,8 @@ namespace SceneSerializer {
               const std::vector<MaterialData>& materialsData,
               const std::vector<AnimationRefData>& animationsData,
               const std::vector<NotifyData>& notifiesData,
-              const std::vector<RemoveClipData>& removedClips);
+              const std::vector<RemovedClipData>& removedClips,
+              const std::vector<RemovedClipData>& inPlaceClips);
 
     SceneData load(const std::string& path);
 }
