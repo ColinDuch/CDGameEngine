@@ -69,6 +69,7 @@ public:
 
     const std::string& getTexturePath() const { return texturePath; }
     const std::string& getModelPath() const { return modelPath; }
+    bool isYUpToZUp() const { return yUpToZUp; }    // modele redresse a l'import 
 
     void setModelPath(const std::string& p) { modelPath = p; }
 
@@ -133,6 +134,7 @@ private:
     std::vector<uint32_t> indicesCPU;
     std::string texturePath;
     std::string modelPath;
+    bool yUpToZUp = false;
     bool hasUV = false;
 
     glm::vec3 boundsMin{0.0f};

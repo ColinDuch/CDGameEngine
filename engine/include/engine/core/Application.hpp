@@ -411,6 +411,7 @@ private:
     std::vector<AnimationRefData> loadAnimations;
     std::vector<RemovedClipData> removedClips;   // clips supprimes, retires a chaque chargement
     void deleteClip(int meshIdx, int clipIdx);
+    void setModelYUp(int meshIdx, bool on);     // recharge un modele, redresse ou non 
     int clipToDelete = -1;  // clip en attente de confirmation
     std::vector<std::shared_ptr<AnimStateMachineAsset>> animMachines;   //assets partages
     void saveAnimMachines();

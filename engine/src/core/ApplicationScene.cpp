@@ -505,8 +505,8 @@ void Application::loadScene() {
             }
 
             for (size_t i = 0; i < availableMeshes.size(); i++) {
-                if (availableMeshes[i]->getModelPath() == modelPath &&
-                    availableMeshes[i]->getTexturePath() == texturePath) {
+                if (availableMeshes[i]->getTexturePath() == texturePath && 
+                    (!availableMeshes[i]->getBuiltinName().empty() || availableMeshes[i]->isYUpToZUp() == objData.yUpToZUp)) {
                     meshIndex = static_cast<int>(i);
                     break;
                 }
@@ -517,8 +517,10 @@ void Application::loadScene() {
                     auto newMesh = std::make_shared<Mesh>(
                         vulkanContext,
                         modelPath, texturePath,
-                        descriptorPool->getHandle(), descriptorSetLayout->getHandle(),
-                        uniformBuffer->getHandle()
+                        descriptorPool->getHandle(), 
+                        descriptorSetLayout->getHandle(),
+                        uniformBuffer->getHandle(),
+                        objData.yUpToZUp
                     );
                     availableMeshes.push_back(newMesh);
                     meshNames.push_back(std::filesystem::path(modelPath).stem().string());
@@ -1163,4 +1165,30 @@ void Application::deleteClip(int meshIdx, int clipIdx) {
     // l historique d annulation garde les anciens index de clips : il ne serait plus juste
     undoStack.clear();
     redoStack.clear();
+}
+
+void Application::setModelYUp(int meshIdx, bool on) {
+    if (meshIdx < 0 || meshIdx >= static_cast<int>(availableMeshes.size())) return;
+    const std::shared_ptr<Mesh> old = availableMeshes[meshIdx];
+    if (old->isYUpToZUp() == on) return;
+
+    std::shared_ptr<Mesh> fresh;
+    try {
+        fresh = std::make_shared<Mesh>(vulkanContext, old->getModelPath(), old->getTexturePath(), 
+                                        descriptorPool->getHandle(), descriptorSetLayout->getHandle(),
+                                        uniformBuffer->getHandle(), on);
+    } catch (const std::exception& e) {
+        sceneMessage = Lang::fmt("Reload failed: %s", e.what());
+        return;
+    }
+    fresh->setBuiltinName(old->getBuiltinName());
+    fresh->getClipsMutable() = old->getClips();     // animations chargees a part, notifies, "sur place"
+
+    // le GPU dessine peut-etre encore avec l ancien modele : on atten qu il ait fini
+    vkDeviceWaitIdle(vulkanDevice->getHandle());
+    availableMeshes[meshIdx] = fresh;
+    for (auto& o : sceneObjects) {
+        if (o->meshIndex == meshIdx) o->setMesh(fresh);
+    }
+    commandBuffer->setSceneObjects(sceneObjects);
 }

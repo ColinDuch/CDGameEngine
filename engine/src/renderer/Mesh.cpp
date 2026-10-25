@@ -115,13 +115,22 @@ Mesh::Mesh(const VulkanContext& ctx,
            const std::string& modelPath, const std::string& texturePath,
            VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout,
            VkBuffer uniformBuffer, bool yUpToZUp)
-    : texturePath(texturePath), modelPath(modelPath) {
+    : texturePath(texturePath), modelPath(modelPath), yUpToZUp(yUpToZUp) {
 
     // 1. Geometrie de projet deja cuite : rien a importer.
     if (MeshCache::isCacheFile(modelPath)) {
-        buildFromCache(ctx, MeshCache::load(modelPath), modelPath,
-                       descriptorPool, descriptorSetLayout, uniformBuffer);
+        // un  .emesh garde la geometrie d origine (voir toCacheData) : on redresse au chargement 
+        MeshCacheData data =MeshCache::load(modelPath);
+        if (yUpToZUp) {
+            for (auto& v : data.vertices) {
+                v.position = glm::vec3(v.position.x, -v.position.z, v.position.y);
+                v.normal = glm::vec3(v.normal.x, -v.normal.z, v.position.y);
+                v.tangent = glm::vec3(v.tangent.x, -v.tangent.z, v.tangent.y);
+            }
+        }
+        buildFromCache(ctx, data, modelPath, descriptorPool, descriptorSetLayout, uniformBuffer);
         return;
+
     }
 
     // 2. Cache d'import a jour : on saute completement Assimp.
@@ -209,6 +218,15 @@ Mesh::~Mesh() {
 MeshCacheData Mesh::toCacheData() const {
     MeshCacheData d;
     d.vertices = verticesCPU;
+    // un modele redresse est enregistre dans son sens d origine : le redressement est 
+    // refait au chargement, sinon il serait applique deux fois
+    if (yUpToZUp) {
+        for (auto& v : d.vertices) {
+            v.position = glm::vec3(v.position.x, v.position.z, -v.position.y);
+            v.normal = glm::vec3(v.normal.x, v.normal.z, -v.normal.y);
+            v.tangent = glm::vec3(v.tangent.x, v.tangent.z, -v.tangent.y);
+        }
+    }
     d.indices  = indicesCPU;
     d.hasUV    = hasUV;
 

@@ -26,6 +26,7 @@ struct NotifyData {
 
 struct SceneObjectData {
     std::string modelPath;
+    bool yUpToZUp = false;  // modele redresse a l import (y-up -> z-up)
     std::string texturePath;
     std::string scriptPath;
     glm::vec3 position;

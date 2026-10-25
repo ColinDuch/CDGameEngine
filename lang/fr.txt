@@ -452,3 +452,7 @@ Clip removed: %s=Clip supprimé : %s
 
 In place=Sur place
 The body no longer moves away: the movement comes from the physics, not the animation.=Le corps ne s'éloigne plus : le déplacement vient de la physique, pas de l'animation.
+
+Y-up model (straighten)=Modèle Y-up (redresser)
+For models exported lying down (Mixamo, glTF...). Applies to every object using this model.=Pour les modèles exportés couchés (Mixamo, glTF…). S'applique à tous les objets qui utilisent ce modèle.
+Reload failed: %s=Échec du rechargement : %s

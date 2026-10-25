@@ -29,6 +29,7 @@ public:
 
     // Mesh partage (necessaire au frustum culling : boite englobante).
     const std::shared_ptr<Mesh>& getMesh() const { return mesh; }
+    void setMesh(std::shared_ptr<Mesh> m) { mesh = std::move(m); }      // modele recharge
 
     glm::vec3 position{0.0f, 0.0f, 0.0f};
     glm::quat orientation{1.0f, 0.0f, 0.0f, 0.0f};   // rotation = VÉRITÉ (pas de gimbal)

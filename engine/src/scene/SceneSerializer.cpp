@@ -88,6 +88,7 @@ void SceneSerializer::save(const std::string& path,
             } else {
                 w.key("modelPath"); w.value(assetRelPath(mesh->getModelPath(), "models"));
                 w.key("texturePath"); w.value(assetRelPath(mesh->getTexturePath(), "textures"));
+                w.key("yUpToZUp"); w.value(mesh->isYUpToZUp() ? 1 : 0);
             }
         } else {
             // Objet sans mesh (groupe / Empty).
@@ -254,13 +255,14 @@ SceneData SceneSerializer::load(const std::string& path) {
         for (size_t i = 0; i < objects.size(); i++) {
             const JsonValue& o = objects[i];
             SceneObjectData data;
-            data.modelPath   = o["modelPath"].asString();
+            data.modelPath = o["modelPath"].asString();
+            data.yUpToZUp = o.has("yUpToZUp") && o["yUpToZUp"].isNumber() && o["yUpToZUp"].asDouble() != 0.0;
             data.texturePath = o["texturePath"].asString();
             data.position = readVec3(o["position"]);
             data.rotation = readVec3(o["rotation"]);
-            data.scale    = readVec3(o["scale"]);
+            data.scale = readVec3(o["scale"]);
             data.scriptPath = o.has("scriptPath") ? o["scriptPath"].asString() : std::string("");
-            data.metallic  = o.has("metallic")  ? static_cast<float>(o["metallic"].asDouble())  : 0.0f;
+            data.metallic = o.has("metallic") ? static_cast<float>(o["metallic"].asDouble())  : 0.0f;
             data.roughness = o.has("roughness") ? static_cast<float>(o["roughness"].asDouble()) : 0.5f;
             data.worldUvScale = o.has("worldUvScale") ? static_cast<float>(o["worldUvScale"].asDouble()) : 0.0f;
             data.materialIndex = o.has("materialIndex") ? static_cast<int>(o["materialIndex"].asDouble()) : -1;

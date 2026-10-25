@@ -395,6 +395,16 @@ void Application::drawInspectorPanel() {
             if (ImGui::IsItemActivated()) pushUndo();
         }
 
+        // ---- Orientation du modele ----
+        if (selected->meshIndex >= 0 && selected->meshIndex < static_cast<int>(availableMeshes.size())
+            && availableMeshes[selected->meshIndex]->getBuiltinName().empty() && !isPlaying) {
+            bool yUp = availableMeshes[selected->meshIndex]->isYUpToZUp();
+            if (ImGui::Checkbox(Lang::tr("Y-up model (straighten)"), &yUp)) setModelYUp(selected->meshIndex, yUp);
+            if (ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("%s", Lang::tr("For models exported lying down (Mixamo, glTF...). Applies to every object using this model."));
+            }
+        } 
+
         // ---- Physique ----
         ImGui::Separator();
         {
