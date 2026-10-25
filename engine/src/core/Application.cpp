@@ -250,7 +250,7 @@ void Application::loadBuiltinMeshes() {
         auto character = std::make_shared<Mesh>(
             vulkanContext, "assets/models/Primitive_Character.fbx", "",
             descriptorPool->getHandle(), descriptorSetLayout->getHandle(),
-            uniformBuffer->getHandle()
+            uniformBuffer->getHandle(), true
         );
         character->setBuiltinName("Character");
         availableMeshes.push_back(character);

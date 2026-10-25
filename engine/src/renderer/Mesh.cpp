@@ -114,7 +114,7 @@ void Mesh::buildFromCache(const VulkanContext& ctx,
 Mesh::Mesh(const VulkanContext& ctx,
            const std::string& modelPath, const std::string& texturePath,
            VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout,
-           VkBuffer uniformBuffer)
+           VkBuffer uniformBuffer, bool yUpToZUp)
     : texturePath(texturePath), modelPath(modelPath) {
 
     // 1. Geometrie de projet deja cuite : rien a importer.
@@ -126,7 +126,7 @@ Mesh::Mesh(const VulkanContext& ctx,
 
     // 2. Cache d'import a jour : on saute completement Assimp.
     const std::string cachePath = MeshCache::cachePathFor(modelPath);
-    if (MeshCache::isFresh(cachePath, modelPath)) {
+    if (!yUpToZUp && MeshCache::isFresh(cachePath, modelPath)) {    // le cache ne connait pas le redressement 
         MeshCacheData cached;
         bool ok = false;
         try { cached = MeshCache::load(cachePath); ok = true; }
@@ -140,7 +140,7 @@ Mesh::Mesh(const VulkanContext& ctx,
     }
 
     // 3. Import Assimp (lent), puis ecriture du cache pour la prochaine fois.
-    Model model(modelPath);
+    Model model(modelPath, yUpToZUp);
     hasUV = model.getHasUV();
     skeleton = model.getSkeleton();
     skins = model.getSkins();
@@ -163,7 +163,7 @@ Mesh::Mesh(const VulkanContext& ctx,
                    descriptorPool, descriptorSetLayout, uniformBuffer);
     }
 
-    if (skins.empty()) {
+    if (skins.empty() && !yUpToZUp) {
             // Le cache est un confort : s'il echoue, on continue sans bruit.
         try {
             MeshCacheData d = toCacheData();

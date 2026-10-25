@@ -77,6 +77,12 @@ struct Skeleton {
     std::unordered_map<std::string, int> nameToIndex;
     glm::mat4 globalInverse{1.0f};
 
+    // redressement applique a l import (Y-up -> Z-up) : les sommets sont tournes,
+    // et les matrices d os l encadrent pour que le squelette tourne avec eux.
+    // Les animations restent intactes : elles parlent en repere local des os.
+    glm::mat4 axisFix{1.0f};
+    glm::mat4 axisFixInv{1.0f};
+
     bool empty() const { return bones.empty(); }
 
     int find(const std::string& n) const {
@@ -106,7 +112,7 @@ struct Skeleton {
 
         std::vector<glm::mat4> out(bones.size(), glm::mat4(1.0f));
         for (size_t i = 0; i < bones.size(); ++i) {
-            if (bones[i].skinned) out[i] = globals[i] * bones[i].offsetMatrix;
+            if (bones[i].skinned) out[i] = axisFix * globals[i] * bones[i].offsetMatrix * axisFixInv;
         }
         return out;
     }
@@ -140,7 +146,7 @@ struct Skeleton {
 
         std::vector<glm::mat4> out(bones.size(), glm::mat4(1.0f));
         for (size_t i = 0; i < bones.size(); ++i) {
-            if (bones[i].skinned) out[i] = globals[i] * bones[i].offsetMatrix;
+            if (bones[i].skinned) out[i] = axisFix * globals[i] * bones[i].offsetMatrix * axisFixInv;
         }
         return out;
     }

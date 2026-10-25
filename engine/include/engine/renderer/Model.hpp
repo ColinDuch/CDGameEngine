@@ -28,7 +28,8 @@ struct SubMesh {
 
 class Model {
 public:
-    Model(const std::string& filepath);
+    // yUpToZUp : redresse un modele exporte en Y-up pour notre monde en Z-up
+    explicit Model(const std::string& filepath, bool yUpToZUp = false);
 
     const std::vector<Vertex>& getVertices() const { return vertices; }
     const std::vector<uint32_t>& getIndices() const { return indices; }
@@ -56,7 +57,7 @@ public:
 
 
 private:
-    void loadModel(const std::string& filepath);
+    void loadModel(const std::string& filepath, bool yUpToZUp);
 
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;

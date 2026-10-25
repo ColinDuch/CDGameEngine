@@ -100,11 +100,11 @@ namespace {
 
 } // namespace
 
-Model::Model(const std::string& filepath) {
-    loadModel(filepath);
+Model::Model(const std::string& filepath, bool yUpToZUp) {
+    loadModel(filepath, yUpToZUp);
 }
 
-void Model::loadModel(const std::string& filepath) {
+void Model::loadModel(const std::string& filepath, bool yUpToZUp) {
     Assimp::Importer importer;
 
     /*
@@ -308,6 +308,24 @@ void Model::loadModel(const std::string& filepath) {
         std::string base = std::filesystem::path(filepath).stem().string();
         for (size_t i = 0; i < clips.size(); ++i) {
             clips[i].name = (clips.size() == 1) ? base : (base + "_" + std::to_string(i));
+        }
+    }
+
+    // Redressement Y-up -> Z-up : un quart de tour autour de X, (x, y, z) -> (x, -z, y).
+    // Le haut du modele (+Y) devient notre haut (+Z). On tourne positions, normales et tangentes ;
+    // le squelette garde ses donnees et recoit la meme rotation via axisFix.
+    if (yUpToZUp) {
+        auto rotate = [](glm::vec3& v) { v = glm::vec3(v.x, -v.z, v.y); };
+        for (auto& v : vertices) {
+            rotate(v.position);
+            rotate(v.normal);
+            rotate(v.tangent);
+        }
+        if (anyBones) {
+            skeleton.axisFix = glm::mat4(glm::mat3(1, 0, 0,     // colonnes : ou vont X, Y, Z
+                                                   0, 0, 1,
+                                                   0, -1, 0));
+            skeleton.axisFixInv = glm::transpose(skeleton.axisFix);   // inverse d une rotation
         }
     }
 

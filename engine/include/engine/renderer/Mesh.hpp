@@ -41,7 +41,7 @@ public:
     Mesh(const VulkanContext& ctx,
          const std::string& modelPath, const std::string& texturePath,
          VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout,
-         VkBuffer uniformBuffer);
+         VkBuffer uniformBuffer, bool yUpToZUp = false);
 
     // Constructeur "memoire" : recoit vertices/indices deja en memoire (import glTF).
     Mesh(const VulkanContext& ctx,

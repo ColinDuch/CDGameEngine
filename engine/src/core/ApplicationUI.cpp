@@ -405,7 +405,7 @@ void Application::drawInspectorPanel() {
                 selected->bodyType = static_cast<SceneObject::BodyType>(type);
             }
             if (ImGui::IsItemHovered()) {
-                ImGui::SetTooltip("%s", Lang::tr("None: no collision. Static: solid, never moves. Dynamic: falls and collides. Character: walk and stys upright"));
+                ImGui::SetTooltip("%s", Lang::tr("None: no collision. Static: solid, never moves. Dynamic: falls and collides. Character: walk and stays upright."));
             }
             if (selected->bodyType == SceneObject::BodyType::Dynamic) {
                 ImGui::DragFloat(Lang::tr("Mass (kg)"),  & selected->mass, 0.1f, 0.01f, 100000.0f, "%.2f");
