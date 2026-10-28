@@ -304,6 +304,8 @@ void PhysicsWorld::addCharacter(uint32_t objectId, const glm::vec3& position, co
     settings.mMaxSlopeAngle = JPH::DegreesToRadians(45.0f); // au dela, il glisse
     // seul le bas de la capsule peut porter : un plafond touche par al tete n est pas un sol
     settings.mSupportingVolume = JPH::Plane(JPH::Vec3::sAxisZ(), -(footOffset.z + radius));
+    settings.mMass = 70.0f;     // kg, pour pousser les caisses
+    settings.mMaxStrength = 400.0f;     // force de pousse max, en newtons
 
     // marge de depart : des pieds jusqu a 50cm sous le sol (scult, placement a l oeil)
     // remontent a la surface. Un sol plus haut que ca (un pont, un etage) n est pas touche.
@@ -389,8 +391,14 @@ void PhysicsWorld::updateCharacters() {
 
         ch.SetLinearVelocity(JPH::Vec3(move.GetX(), move.GetY(), vz));
 
-        // Jolt fait glisser la capsule le long des obstacles : c est ce qui fait monter les pentes
-        ch.Update(FIXED_STEP, gravity, impl->system.GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
-            impl->system.GetDefaultLayerFilter(Layers::MOVING), {}, {}, impl->tempAllocator);
+        // ExtendedUpdate = update + monter les marches + rester colle au sol dans les descentes,
+        // Ses reglages par defaut sont en Y-up : on les remet en Z-up.
+        JPH::CharacterVirtual::ExtendedUpdateSettings ext;
+        ext.mStickToFloorStepDown = JPH::Vec3(0.0f, 0.0f, -0.5f);   // suit le sol jusqu a 50 cm plus bas 
+        ext.mWalkStairsStepUp = JPH::Vec3(0.0f, 0.0f, 0.4f);    // monte des marches jusqu a 40cm
+        ch.ExtendedUpdate(FIXED_STEP, gravity, ext, 
+            impl->system.GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
+            impl->system.GetDefaultLayerFilter(Layers::MOVING),
+            {}, {}, impl->tempAllocator);
     }
 }

@@ -504,11 +504,16 @@ void Application::loadScene() {
                 }
             }
 
-            for (size_t i = 0; i < availableMeshes.size(); i++) {
-                if (availableMeshes[i]->getTexturePath() == texturePath && 
-                    (!availableMeshes[i]->getBuiltinName().empty() || availableMeshes[i]->isYUpToZUp() == objData.yUpToZUp)) {
-                    meshIndex = static_cast<int>(i);
-                    break;
+            // un model importe : meme fichier, meme texture, meme redressement 
+            // (inutile pour une primitive, deja trouvee juste au dessus)
+            if (meshIndex < 0) {
+                for (size_t i = 0; i < availableMeshes.size(); i++) {
+                    if (availableMeshes[i]->getModelPath() == modelPath && 
+                        availableMeshes[i]->getTexturePath() == texturePath && 
+                        (!availableMeshes[i]->getBuiltinName().empty() || availableMeshes[i]->isYUpToZUp() == objData.yUpToZUp)) {
+                        meshIndex = static_cast<int>(i);
+                        break;
+                    }
                 }
             }
 
