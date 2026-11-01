@@ -117,6 +117,9 @@ void ScriptEngine::registerApi(lua_State* L) {
     reg("isGrounded", &ScriptEngine::api_isGrounded);
     reg("getVelocity", &ScriptEngine::api_getVelocity);
     reg("getCameraYaw", &ScriptEngine::api_getCameraYaw);
+    reg("addForce", &ScriptEngine::api_addForce);
+    reg("addImpulse", &ScriptEngine::api_addImpulse);
+    reg("setVelocity", &ScriptEngine::api_setVelocity);
 
     lua_setglobal(L, "Engine");
 }
@@ -342,6 +345,52 @@ int ScriptEngine::api_getCameraYaw(lua_State* L) {
     lua_pushnumber(L, camera ? camera->getYaw() : 0.0f);
     return 1;
 }
+
+/*
+---------------------------------------------------------------------------
+Corps dynamique (Physique : Dynamique dans l inspecteur)
+---------------------------------------------------------------------------
+*/
+
+namespace {
+    // l objet a l argument 1, qui doit avoir un corps dynamique ; puis un vecteur en arguments 2 a 4
+    uint32_t dynamicArg(lua_State* L, PhysicsWorld* physics, SceneObject* o, glm::vec3& v) {
+        if (!physics || !physics->isDynamic(o->id))
+            luaL_error(L, Lang::tr("'%s' is not a Dynamic body (Physics, in the inspector)"), o->name.c_str());
+        v = glm::vec3(static_cast<float>(luaL_checknumber(L, 2)),
+            static_cast<float>(luaL_checknumber(L, 3)),
+            static_cast<float>(luaL_checknumber(L, 4)));
+        return o->id;
+    }
+}
+
+// addForce(i, fx, fy, fz) : force en newtons, a redonner a chaque image (propulseur, vent)
+int ScriptEngine::api_addForce(lua_State* L) {
+    PhysicsWorld* physics =selfFromUpvalue(L)->physics;
+    glm::vec3 f;
+    const uint32_t id = dynamicArg(L, physics, objectAt(L, 1), f);
+    physics->addForce(id, f);
+    return 0;
+}
+
+// addImpulse(i, ix, iy, iz) : coup instantane en N.s (vitesse gagnee = impulsion / mass)
+int ScriptEngine::api_addImpulse(lua_State* L) {
+    PhysicsWorld* physics = selfFromUpvalue(L)->physics;
+    glm::vec3 j;
+    const uint32_t id = dynamicArg(L, physics, objectAt(L, 1), j);
+    physics->addImpulse(id, j);
+    return 0;  
+}
+
+// setVelocity(i, vx, vy, vz) : impose la vitesse en m/s
+int ScriptEngine::api_setVelocity(lua_State* L) {
+    PhysicsWorld* physics = selfFromUpvalue(L)->physics;
+    glm::vec3 v;
+    const uint32_t id = dynamicArg(L, physics, objectAt(L, 1), v);
+    physics->setVelocity(id, v);
+    return 0;
+}
+
 
 /*
 ---------------------------------------------------------------------------

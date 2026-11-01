@@ -456,3 +456,5 @@ The body no longer moves away: the movement comes from the physics, not the anim
 Y-up model (straighten)=Modèle Y-up (redresser)
 For models exported lying down (Mixamo, glTF...). Applies to every object using this model.=Pour les modèles exportés couchés (Mixamo, glTF…). S'applique à tous les objets qui utilisent ce modèle.
 Reload failed: %s=Échec du rechargement : %s
+
+'%s' is not a Dynamic body (Physics, in the Inspector)='%s' n'est pas un corps Dynamique (Physique, dans l'Inspecteur)

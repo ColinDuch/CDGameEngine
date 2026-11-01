@@ -88,6 +88,7 @@ struct PhysicsWorld::Impl {
     int steps = 0;      // pas simules depuis le play
     float simulated = 0.0f;     // temps simule depuis le play
     std::unordered_map<uint32_t, JPH::BodyID> bodies;   // id d objet -> corps Jolt
+    std::unordered_map<uint32_t, glm::vec3> pendingForces;      // force demandees pendant l image
 
     // personnages : ce ne sont pas des corps Jolt, mais des capsules deplacees a la main
     struct Character {
@@ -137,8 +138,17 @@ void PhysicsWorld::endPlay() {
 }
 
 void PhysicsWorld::step(float dt) {
-    // pas fixes : la simulation ne depend pas des fps, et reste stable
-    impl->accumulator += std::min(dt, 0.25f);   // une image tres longue ne fait pas exploser le calcul
+    const float frame = std::min(dt, 0.25f);    // une image tres longue ne fait pas exploser le calcul
+
+    // les forces de l image deviennent une impulsion (force x duree de l image) :
+    // le resultat ne depend ni des fps ni du nombre de pas simules dans l image
+    JPH::BodyInterface& bodiesApi = impl->system.GetBodyInterface();
+    for (const auto& [objectId, force] : impl->pendingForces) {
+        const auto it = impl->bodies.find(objectId);
+        if (it != impl->bodies.end()) bodiesApi.AddImpulse(it->second, toJolt(force * frame));
+    }
+    impl->pendingForces.clear();
+    impl->accumulator += frame;
     while (impl->accumulator >= FIXED_STEP) {
         updateCharacters();
         impl->system.Update(FIXED_STEP, 1, &impl->tempAllocator, &impl->jobs);
@@ -204,6 +214,7 @@ bool PhysicsWorld::getTransform(uint32_t objectId, glm::vec3& position, glm::qua
 }
 
 void PhysicsWorld::removeBody(uint32_t objectId) {
+    impl->pendingForces.erase(objectId);
     impl->characters.erase(objectId);   // un personnage n est pas dans "bodies"
     const auto it = impl->bodies.find(objectId);
     if (it == impl->bodies.end()) return;
@@ -358,6 +369,25 @@ bool PhysicsWorld::getVelocity(uint32_t objectId, glm::vec3& velocity) const {
     }
     velocity = glm::vec3(v.GetX(), v.GetY(), v.GetZ());
     return true;
+}
+
+bool PhysicsWorld::isDynamic(uint32_t objectId) const {
+    const auto it = impl->bodies.find(objectId);
+    return it != impl->bodies.end() && impl->system.GetBodyInterface().GetMotionType(it->second) == JPH::EMotionType::Dynamic;
+}
+
+void PhysicsWorld::addForce(uint32_t objectId, const glm::vec3& force) {
+    if (isDynamic(objectId)) impl->pendingForces[objectId] += force;    // plusieurs appels s additionnent 
+}
+
+void PhysicsWorld::addImpulse(uint32_t objectId, const glm::vec3& impulse) {
+    if (!isDynamic(objectId)) return;
+    impl->system.GetBodyInterface().AddImpulse(impl->bodies.at(objectId), toJolt(impulse));     // le reveille aussi
+}
+
+void PhysicsWorld::setVelocity(uint32_t objectId, const glm::vec3& velocity) {
+    if (!isDynamic(objectId)) return;
+    impl->system.GetBodyInterface().SetLinearVelocity(impl->bodies.at(objectId), toJolt(velocity));
 }
 
 void PhysicsWorld::updateCharacters() {

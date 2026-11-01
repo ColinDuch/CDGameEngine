@@ -44,6 +44,12 @@ class PhysicsWorld {
         bool isCharacterGrounded(uint32_t objectId) const;      // pose sur un sol praticable
         bool getVelocity(uint32_t objectId, glm::vec3& velocity) const;     // personnage ou corps, en m/s
 
+        // corps dynamique (Physique : Dynamique)
+        bool isDynamic(uint32_t objectId) const;
+        void addForce(uint32_t objectId, const glm::vec3& force);   // N, pour cette image (a redeonner a chaque image)
+        void addImpulse(uint32_t objectId, const glm::vec3& impulse);   // N.s, d un coup (saut, explosion)
+        void setVelocity(uint32_t objectId, const glm::vec3& velocity);     // m/s
+
         // terrain statique : grille de hauteurs resX x et resY (index = iy*resX + ix), centree, Z-up
         void addTerrain(const std::vector<float>& heights, int resX, int resY, float sizeX, float sizeY,
             const glm::vec3& position, const glm::quat& rotation, const glm::vec3& scale);
