@@ -76,6 +76,7 @@ private:
     static int api_addForce(lua_State* L);
     static int api_addImpulse(lua_State* L);
     static int api_setVelocity(lua_State* L);
+    static int api_raycast(lua_State* L);
 
     std::vector<Instance> instances;
     std::vector<std::shared_ptr<SceneObject>>& objects;

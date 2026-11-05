@@ -120,6 +120,7 @@ void ScriptEngine::registerApi(lua_State* L) {
     reg("addForce", &ScriptEngine::api_addForce);
     reg("addImpulse", &ScriptEngine::api_addImpulse);
     reg("setVelocity", &ScriptEngine::api_setVelocity);
+    reg("raycast", &ScriptEngine::api_raycast);
 
     lua_setglobal(L, "Engine");
 }
@@ -356,7 +357,7 @@ namespace {
     // l objet a l argument 1, qui doit avoir un corps dynamique ; puis un vecteur en arguments 2 a 4
     uint32_t dynamicArg(lua_State* L, PhysicsWorld* physics, SceneObject* o, glm::vec3& v) {
         if (!physics || !physics->isDynamic(o->id))
-            luaL_error(L, Lang::tr("'%s' is not a Dynamic body (Physics, in the inspector)"), o->name.c_str());
+            luaL_error(L, Lang::tr("'%s' is not a Dynamic body (Physics, in the Inspector)"), o->name.c_str());
         v = glm::vec3(static_cast<float>(luaL_checknumber(L, 2)),
             static_cast<float>(luaL_checknumber(L, 3)),
             static_cast<float>(luaL_checknumber(L, 4)));
@@ -389,6 +390,41 @@ int ScriptEngine::api_setVelocity(lua_State* L) {
     const uint32_t id = dynamicArg(L, physics, objectAt(L, 1), v);
     physics->setVelocity(id, v);
     return 0;
+}
+
+// raycast(ox, oy, oz, dx, dy, dz, distanceMax)
+//  rien touche : false 
+//  sinon : true, distance, x, y, z (point), nx, ny, nz (normale),objet (-1 = terrain)
+int ScriptEngine::api_raycast(lua_State* L) {
+    ScriptEngine* self = selfFromUpvalue(L);
+    const glm::vec3 origin(static_cast<float>(luaL_checknumber(L, 1)), static_cast<float>(luaL_checknumber(L, 2)), 
+                            static_cast<float>(luaL_checknumber(L, 3)));
+    const glm::vec3 dir(static_cast<float>(luaL_checknumber(L, 4)), static_cast<float>(luaL_checknumber(L, 5)),
+                        static_cast<float>(luaL_checknumber(L, 6)));
+    const float maxDistance = static_cast<float>(luaL_optnumber(L, 7, 100.0));  // 100m si absent
+    const PhysicsWorld::RayHit hit =self->physics ? self->physics->raycast(origin, dir, maxDistance)
+                                : PhysicsWorld::RayHit{};
+
+    if (!hit.hit) {
+        lua_pushboolean(L, 0);
+        return 1;
+    }
+
+    // l id stable redevient l index que les scripts utilisent
+    int index = -1;
+    for (size_t i = 0; i < self->objects.size(); i++) {
+        if (self->objects[i]->id == hit.objectId) {
+            index = static_cast<int>(i);
+            break;
+        }
+    }
+
+    lua_pushboolean(L,1);
+    lua_pushnumber(L, hit.distance);
+    lua_pushnumber(L, hit.point.x);     lua_pushnumber(L, hit.point.y);     lua_pushnumber(L, hit.point.z);
+    lua_pushnumber(L, hit.normal.x);    lua_pushnumber(L, hit.normal.y);    lua_pushnumber(L, hit.normal.z);
+    lua_pushinteger(L, index);
+    return 9;
 }
 
 

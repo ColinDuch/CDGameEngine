@@ -50,6 +50,17 @@ class PhysicsWorld {
         void addImpulse(uint32_t objectId, const glm::vec3& impulse);   // N.s, d un coup (saut, explosion)
         void setVelocity(uint32_t objectId, const glm::vec3& velocity);     // m/s
 
+        // lancer de rayon contre le corps et le terrain (pas les personnages)
+        struct RayHit {
+            bool hit = false;
+            float distance =0.0f;   // en metres depuis l origine
+            glm::vec3 point{ 0.0f };    // point touche
+            glm::vec3 normal{ 0.0f };   // perpendiculaire a la surface, vers l exterieur
+            uint32_t objectId = 0;      // id de l objet touche ; terrainId() pour le terrain
+        };
+        RayHit raycast(const glm::vec3& origin, const glm::vec3& direction, float maxDistance) const;
+        static uint32_t terrainId();
+
         // terrain statique : grille de hauteurs resX x et resY (index = iy*resX + ix), centree, Z-up
         void addTerrain(const std::vector<float>& heights, int resX, int resY, float sizeX, float sizeY,
             const glm::vec3& position, const glm::quat& rotation, const glm::vec3& scale);

@@ -53,16 +53,13 @@ cd ..
 
 echo ""
 echo "=== Compilation du moteur ==="
-if [ ! -d build ]; then
-    echo "  build/ absent : configuration CMake"
-    if ! cmake -S . -B build; then
-        echo ""
-        echo "!!! ERREUR de configuration CMake"
-        read -p "Entree pour fermer"
-        exit 1
-    fi
+if ! cmake -S . -B build; then
+    echo ""
+    echo "!!! ERREUR de configuration CMake"
+    read -p "Entree pour fermer"
+    exit 1
 fi
-if ! cmake --build build; then
+if ! cmake --build build --parallel "$(nproc)"; then
     echo ""
     echo "!!! ERREUR de compilation"
     read -p "Entree pour fermer"
@@ -71,7 +68,7 @@ fi
 
 echo ""
 echo "=== Lancement ==="
-./build/bin/game "$1"
+./build/bin/game "$@"
 code=$?
 
 echo ""

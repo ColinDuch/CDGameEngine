@@ -15,6 +15,7 @@
 #include <Jolt/Physics/Character/CharacterVirtual.h>
 #include <Jolt/Physics/Collision/RayCast.h>
 #include <Jolt/Physics/Collision/CastResult.h>
+#include <Jolt/Physics/Body/BodyLock.h>
 
 #include <algorithm>
 #include <thread>
@@ -177,6 +178,8 @@ void PhysicsWorld::addBox(uint32_t objectId, const glm::vec3& position, const gl
         dynamic ? JPH::EMotionType::Dynamic : JPH::EMotionType::Static,
         dynamic ? Layers::MOVING : Layers::STATIC);
     
+    settings.mUserData = objectId;      // le rayon retrouvera l objet touche 
+    
     // la masse choisie ; Jolt en deduit l inertie a partir de la forme
     if (dynamic) {
         settings.mOverrideMassProperties = JPH::EOverrideMassProperties::CalculateInertia;
@@ -282,6 +285,8 @@ void PhysicsWorld::addTerrain(const std::vector<float>& heights, int resX, int r
     const glm::quat yUpToZUp = glm::angleAxis(glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     JPH::BodyCreationSettings settings(result.Get(), JPH::RVec3(toJolt(position)), 
         toJolt(rotation * yUpToZUp).Normalized(), JPH::EMotionType::Static, Layers::STATIC);
+    
+    settings.mUserData = TERRAIN_ID;
 
     JPH::BodyInterface& bodiesApi = impl->system.GetBodyInterface();
     const JPH::BodyID id = bodiesApi.CreateAndAddBody(settings, JPH::EActivation::DontActivate);
@@ -389,6 +394,37 @@ void PhysicsWorld::setVelocity(uint32_t objectId, const glm::vec3& velocity) {
     if (!isDynamic(objectId)) return;
     impl->system.GetBodyInterface().SetLinearVelocity(impl->bodies.at(objectId), toJolt(velocity));
 }
+
+uint32_t PhysicsWorld::terrainId() { return TERRAIN_ID; }
+
+PhysicsWorld::RayHit PhysicsWorld::raycast(const glm::vec3& origin, const glm::vec3& direction, float maxDistance) const {
+    RayHit out;
+    const float len = glm::length(direction);
+    if (len < 1e-6f || maxDistance <= 0.0f) return out;
+
+    // chez Jolt, la direction du rayon contient se longueur 
+    const JPH::RRayCast ray(JPH::RVec3(toJolt(origin)), toJolt(direction / len * maxDistance));
+    JPH::RayCastResult hit;
+    if (!impl->system.GetNarrowPhaseQuery().CastRay(ray, hit, 
+        impl->system.GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
+        impl->system.GetDefaultLayerFilter(Layers::MOVING))) 
+        return out;
+    
+    const JPH::RVec3 p = ray.GetPointOnRay(hit.mFraction);
+    out.hit = true;
+    out.distance = hit.mFraction * maxDistance;
+    out.point =glm::vec3(static_cast<float>(p.GetX()), static_cast<float>(p.GetY()), static_cast<float>(p.GetZ()));
+
+    // la normale et l objet : il faut lire le corps touche, verrouille le temps de la lecture 
+    JPH::BodyLockRead lock(impl->system.GetBodyLockInterface(), hit.mBodyID);
+    if (lock.Succeeded()) {
+        const JPH::Body& body = lock.GetBody();
+        const JPH::Vec3 n = body.GetWorldSpaceSurfaceNormal(hit.mSubShapeID2, p);
+        out.normal =glm::vec3(n.GetX(), n.GetY(), n.GetZ());
+        out.objectId = static_cast<uint32_t>(body.GetUserData());
+    }
+    return out;
+} 
 
 void PhysicsWorld::updateCharacters() {
     const JPH::Vec3 gravity = impl->system.GetGravity();
