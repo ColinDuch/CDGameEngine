@@ -33,12 +33,14 @@ public:
     void toggleCursorLock();
 
     double getScrollDelta();
+    double getScrollDeltaX();   // defilement horizontal (pave tactile a deux doigts)
 
     void cancelClose() { glfwSetWindowShouldClose(window, GLFW_FALSE); exitRequested = false; }
 
 private:
     static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
     double scrollDelta = 0.0;
+    double scrollDeltaX = 0.0;
 
 private:
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height);

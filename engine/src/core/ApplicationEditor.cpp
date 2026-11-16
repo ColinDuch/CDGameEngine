@@ -36,9 +36,10 @@ void Application::updateCamera(float deltaTime) {
     deselectKeyWas = escNow;
 
     // On lit les deltas une seule fois (les getters les remettent a zero).
-    float dx    = static_cast<float>(window->getMouseDeltaX());
-    float dy    = static_cast<float>(window->getMouseDeltaY());
-    float wheel = static_cast<float>(window->getScrollDelta());
+    float dx     = static_cast<float>(window->getMouseDeltaX());
+    float dy     = static_cast<float>(window->getMouseDeltaY());
+    float wheel  = static_cast<float>(window->getScrollDelta());
+    float wheelX = static_cast<float>(window->getScrollDeltaX());
 
     if (window->isCursorLocked()) {
         // Mode vol libre (Tab) : inchange.
@@ -51,7 +52,7 @@ void Application::updateCamera(float deltaTime) {
         glm::vec3 varForward = -glm::vec3(varViewMtrx[0][2], varViewMtrx[1][2], varViewMtrx[2][2]);
         orbitTarget = camera->getPosition() + varForward * orbitDistance;
     } else {
-        updateEditorCamera(dx, dy, wheel);
+        updateEditorCamera(dx, dy, wheel, wheelX);
     }
 }
 
@@ -342,6 +343,7 @@ void Application::updateViewportPick() {
 
     const ImGuiIO& io = ImGui::GetIO();
     if (io.WantCaptureMouse || !ImGui::IsMouseClicked(ImGuiMouseButton_Left)) return;
+    if (io.KeyAlt) return;      // Alt + clic : navigation, pas selection
     if (ImGuizmo::IsOver() || ImGuizmo::IsUsing()) return;      // ce clic est pour le gizmo
 
     glm::vec3 origin, dir;
@@ -707,10 +709,11 @@ void Application::updateBrush() {
     brushHitPos = hit;
     brushActive = true;
 
-    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) ||
-        ImGui::IsMouseClicked(ImGuiMouseButton_Right)) pushUndo();
+    // Alt + clic : c est la navigation (pave tactile), pas le pinceau
+    if (!io.KeyAlt && (ImGui::IsMouseClicked(ImGuiMouseButton_Left) ||
+                       ImGui::IsMouseClicked(ImGuiMouseButton_Right))) pushUndo();
 
-    if (sculptEnabled) {
+    if (sculptEnabled && !io.KeyAlt) {
         float amount = brushStrength * io.DeltaTime;
 
         if (brushMode == 0) {
@@ -807,7 +810,7 @@ void Application::drawAxisGizmo() {
     }
 }
 
-void Application::updateEditorCamera(float dx, float dy, float wheel) {
+void Application::updateEditorCamera(float dx, float dy, float wheel, float wheelX) {
     ImGuiIO& io = ImGui::GetIO();
     if (io.WantCaptureMouse) return;
     if (isPlaying) return;
@@ -827,28 +830,49 @@ void Application::updateEditorCamera(float dx, float dy, float wheel) {
     glm::vec3 upVec   =  glm::vec3(varViewMtrx[0][1], varViewMtrx[1][1], varViewMtrx[2][1]);
     glm::vec3 forward = -glm::vec3(varViewMtrx[0][2], varViewMtrx[1][2], varViewMtrx[2][2]);
 
-    // --- Orbite : clic droit (ou molette) ---
-    if (middle && !shift && (dx != 0.0f || dy != 0.0f)) {
-        const float sens = 0.3f;
-        float yaw   = camera->getYaw() - dx * sens;
-        float pitch = glm::clamp(camera->getPitch() - dy * sens, -89.0f, 89.0f);
-
+    // les trois gestes de navigation, partages par la souris et le pave tactile
+    auto orbit = [&](float dYaw, float dPitch) {
+        const float yaw   = camera->getYaw() - dYaw;
+        const float pitch = glm::clamp(camera->getPitch() - dPitch, -89.0f, 89.0f);
         camera->setState(camera->getPosition(), yaw, pitch);            // 1) oriente
         glm::mat4 varViewMtrx2 = camera->getViewMatrix();
         glm::vec3 forward2 = -glm::vec3(varViewMtrx2[0][2], varViewMtrx2[1][2], varViewMtrx2[2][2]);
         camera->setState(orbitTarget - forward2 * orbitDistance, yaw, pitch); // 2) repositionne
+    };
+    auto pan = [&](float px, float py) {                                // en pixels (ou equivalent)
+        const float k = orbitDistance * 0.0015f;
+        const glm::vec3 offset = (-right * px + upVec * py) * k;
+        orbitTarget += offset;
+        camera->setState(camera->getPosition() + offset, camera->getYaw(), camera->getPitch());
+    };
+    auto zoom = [&](float steps) {                                      // > 0 = rapprocher
+        orbitDistance = glm::clamp(orbitDistance * std::pow(0.9f, steps), 0.5f, 5000.0f);
+        camera->setState(orbitTarget - forward * orbitDistance, camera->getYaw(), camera->getPitch());
+    };
+
+    // souris a 3 boutons emulee : Alt + clic gauche, comme dans Blender
+    // (jamais sur le gizmo, qui garde son clic gauche)
+    const bool altDrag = io.KeyAlt && glfwGetMouseButton(w, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS
+                      && !ImGuizmo::IsOver() && !ImGuizmo::IsUsing();
+
+    // --- Glisser : orbite, Maj = deplacement, Alt + Ctrl = zoom ---
+    if ((middle || altDrag) && (dx != 0.0f || dy != 0.0f)) {
+        if (shift) pan(dx, dy);
+        else if (altDrag && io.KeyCtrl) zoom(-dy * 0.05f);
+        else orbit(dx * 0.3f, dy * 0.3f);
         return;
     }
 
-    // --- Pan : Maj + clic droit (ou molette) ---
-    if (middle && shift && (dx != 0.0f || dy != 0.0f)) {
-        float k = orbitDistance * 0.0015f;
-        glm::vec3 offset = (-right * dx + upVec * dy) * k;
-        orbitTarget += offset;
-        camera->setState(camera->getPosition() + offset,
-                         camera->getYaw(), camera->getPitch());
+    // --- Pave tactile : deux doigts (le defilement), hors sculpt ou il regle le pinceau ---
+    if (trackpadMode && !sculptEnabled && (wheel != 0.0f || wheelX != 0.0f)) {
+        if (io.KeyCtrl) zoom(wheel);                      // les pincements arrivent souvent ainsi
+        else if (shift) pan(-wheelX * 20.0f, -wheel * 20.0f);
+        else orbit(-wheelX * 6.0f, -wheel * 6.0f);
         return;
     }
+
+    // --- Zoom : molette (sauf en mode sculpt, ou elle regle le pinceau) ---
+    if (wheel != 0.0f && !sculptEnabled) zoom(wheel);
 
     // --- Zoom : molette (sauf en mode sculpt, ou elle regle le pinceau) ---
     if (wheel != 0.0f && !sculptEnabled) {

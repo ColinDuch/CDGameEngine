@@ -458,3 +458,6 @@ For models exported lying down (Mixamo, glTF...). Applies to every object using 
 Reload failed: %s=Échec du rechargement : %s
 
 '%s' is not a Dynamic body (Physics, in the Inspector)='%s' n'est pas un corps Dynamique (Physique, dans l'Inspecteur)
+
+Trackpad mode=Mode pavé tactile
+Two fingers: orbit. Shift + two fingers: pan. Ctrl + two fingers: zoom. Alt + click and drag works too, with or without this mode.=Deux doigts : orbite. Maj + deux doigts : déplacement. Ctrl + deux doigts : zoom. Alt + clic glissé fonctionne aussi, avec ou sans ce mode.

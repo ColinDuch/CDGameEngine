@@ -405,6 +405,7 @@ void Application::loadPrefs() {
             if (line.rfind("language=", 0) == 0) {
                 try { languageIndex = std::stoi(line.substr(9)); } catch (...) { languageIndex = 0; }
             }
+            if (line.rfind("trackpad=", 0) == 0) trackpadmode = line.substr(9) == "1";
         }
     }
     if (languageIndex != 0 && languageIndex != 1) languageIndex = 0;
@@ -415,6 +416,7 @@ void Application::savePrefs() {
     std::ofstream f("preferences.txt");
     if (!f) return;
     f << "language=" << languageIndex << "\n";
+    f << "trackpad=" << (trackpadmode ? 1 : 0) << "\n";
     input.writeTo(f);
 }
 

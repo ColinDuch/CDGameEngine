@@ -79,7 +79,7 @@ private:
 
     float calculateDeltaTime();
     void updateCamera(float deltaTime);
-    void updateEditorCamera(float dx, float dy, float wheel);
+    void updateEditorCamera(float dx, float dy, float wheel, float wheelX);
     void updateUniformBuffer();
     void buildUI();
     void drawMenuBar();
@@ -378,6 +378,7 @@ private:
 
     bool deselectKeyWas = false;
     bool orbitAroundSelection = true;
+    bool trackpadmode = false;      // deux doigts = orbite, Maj = deplacement, Ctrl = zoom
     InputMap input;
     GameInput gameInput;    // actions de jeu du projet (input.json)
     PhysicsWorld physics;   // Jolt : initialise avec l application

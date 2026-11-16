@@ -319,6 +319,11 @@ void Application::drawSettingsPanel() {
 
     ImGui::Checkbox(Lang::tr("Orbit around selection"), &orbitAroundSelection);
 
+    if (ImGui::Checkbox(Lang::tr("Trackpad mode"), &trackpadMode)) savePrefs();
+    if (ImGui::IsItemHovered()) {
+        ImGui::SetTooltip("%s", Lang::tr("Two fingers: orbit. Shift + two fingers: pan. Ctrl + two fingers: zoom. Alt + click and drag works too, with or without this mode."));
+    }
+
     ImGui::Checkbox(Lang::tr("Frustum culling"), &frustumCullingEnabled);
     ImGui::TextDisabled(Lang::tr("Culled: %d / %d"), culledCount, static_cast<int>(sceneObjects.size()));
     ImGui::Checkbox(Lang::tr("Show collisions"), &showColliders);

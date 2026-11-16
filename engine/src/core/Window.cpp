@@ -85,6 +85,13 @@ void Window::toggleCursorLock() {
 void Window::scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
     auto self = reinterpret_cast<Window*>(glfwGetWindowUserPointer(window));
     self->scrollDelta += yoffset;
+    self->scrollDeltaX += xoffset;
+}
+
+double Window::getScrollDeltaX() {
+    double delta = scrollDeltaX;
+    scrollDeltaX = 0.0;
+    return delta;
 }
 
 double Window::getScrollDelta() {
