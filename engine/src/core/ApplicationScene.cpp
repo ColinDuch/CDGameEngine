@@ -2,6 +2,7 @@
 #include <engine/core/Config.hpp>
 #include <engine/core/Localization.hpp>
 #include <engine/core/UiHelpers.hpp>
+#include <engine/core/LoadTimer.hpp>
 
 #include <engine/renderer/UniformBufferObject.hpp>
 #include <engine/renderer/GriGeometry.hpp>
@@ -421,6 +422,9 @@ void Application::savePrefs() {
 }
 
 void Application::loadScene() {
+
+    LoadTimer timer;    // temps de chaque phase, affiché à la fin
+
     try {
         namespace fs = std::filesystem;
         fs::path scenePath = fs::path(currentProjectDir) / "scene.json";
@@ -439,6 +443,8 @@ void Application::loadScene() {
 
         // 2. Restaurer la camera.
         camera->setState(scene.cameraPosition, scene.cameraYaw, scene.cameraPitch);
+
+        timer.mark("scene.json");
 
         // --- Materiaux partages (avant les objets, qui les referencent) ---
         materials.clear();
@@ -480,6 +486,8 @@ void Application::loadScene() {
                 sceneMessage += std::string(" | ") + Lang::tr("Game input unreadable, defaults used");
             }
         }
+
+        timer.mark("materiaux, machines, actions");
 
         // Un mesh cassé fait sauter un objet : les index se decalent, il faut une table.
         std::vector<int> indexMap(scene.objects.size(), -1);
@@ -558,6 +566,8 @@ void Application::loadScene() {
             sceneObjects.push_back(newObject);
             indexMap[oi] = static_cast<int>(sceneObjects.size()) - 1;
         }
+
+        timer.mark("modeles");
 
         // animations du projet d abord les clips ensuite l etat de lecture
         loadAnimations.clear();
@@ -643,6 +653,8 @@ void Application::loadScene() {
         }
         updateWorldMatrices();
 
+        timer.mark("animations");
+
         if (scene.terrain.hasTerrain) {
             const TerrainData& td = scene.terrain;
 
@@ -675,6 +687,8 @@ void Application::loadScene() {
             }
         }   // <-- fin du if (scene.terrain.hasTerrain)
 
+        timer.mark("terrain");
+
         // --- Environnement / eclairage ---
         {
             const EnvironmentData& ed = scene.environment;
@@ -696,6 +710,9 @@ void Application::loadScene() {
                 }
             }
         }
+
+        timer.mark("environnement");
+        timer.report();
 
         sceneMessage = Lang::fmt("Scene loaded: %d object(s)", static_cast<int>(scene.objects.size()));
     } catch (const std::exception& e) {
