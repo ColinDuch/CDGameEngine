@@ -477,3 +477,5 @@ First person=Première personne
 Top-down=Vue de dessus
 Eye height=Hauteur des yeux
 Fixed angle=Angle fixe
+
+unknown camera mode: %s=mode de caméra inconnu : %s

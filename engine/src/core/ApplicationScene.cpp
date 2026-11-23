@@ -388,7 +388,7 @@ void Application::saveScene() {
             std::cerr << "[save] " << e.what() << std::endl;
         }
 
-                SceneSerializer::save(scenePath.string(), sceneObjects, availableMeshes, *camera, td, ed, mats, loadAnimations, notifiesData, removedClips, inPlaceClips);
+        SceneSerializer::save(scenePath.string(), sceneObjects, availableMeshes, *camera, td, ed, mats, loadAnimations, notifiesData, removedClips, inPlaceClips, gameCamera);
         std::cout << "[save] " << sceneObjects.size() << " objets -> "
                   << scenePath.string() << std::endl;
         sceneMessage = Lang::fmt("Project saved: %s", currentProjectDir.c_str());
@@ -710,6 +710,8 @@ void Application::loadScene() {
                 }
             }
         }
+
+        gameCamera = scene.gameCamera;   // après les objets : sa cible est un id d'objet
 
         timer.mark("environnement");
         timer.report();
@@ -1054,6 +1056,7 @@ void Application::startPlay() {
     physics.beginPlay();
 
     // la caméra de l'éditeur est mise de coté ; la caméra de jeu part dans la même direction
+    gameCameraBeforPlay = gameCamera;
     editorCamPos = camera->getPosition();
     editorCamYaw = camera->getYaw();
     editorCamPitch= camera->getPitch();
@@ -1113,6 +1116,7 @@ void Application::stopPlay() {
     isPlaying = false;
     physics.endPlay();
 
+    gameCameraBeforPlay = gameCamera;   // réglage d'avant le play
     camera->setState(editorCamPos, editorCamYaw, editorCamPitch);   // la caméra de l'éditeur revient 
     window->setcursorLocked(false);     // la souris est rendue 
     for (auto& o : sceneObjects) o->hiddenInView = false;   // tout redevient visible

@@ -4,6 +4,7 @@
 #include <engine/core/Localization.hpp>
 #include <engine/core/InputMap.hpp>
 #include <engine/core/GameInput.hpp>
+#include <engine/core/GameCamera.hpp>
 
 #include <engine/physics/PhysicsWorld.hpp>
 
@@ -380,16 +381,8 @@ private:
     bool orbitAroundSelection = true;
     bool trackpadMode = false;      // deux doigts = orbite, Maj = deplacement, Ctrl = zoom
 
-    // --- caméra de jeu : en Play, elle remplace la caméra de l'éditeur
-    struct GameCamera {
-        enum class Mode { Editor, ThirdPerson, FirstPerson, TopDown }; // nouveaux modes : toujours à la fin 
-        Mode mode = Mode::Editor;   // Editor : la caméra de l'éditeur reste en play
-        uint32_t targetId = 0;      // objet suivi, par son id stable
-        float distance = 10.0f;     // mètres entre la caméra et le point visé 
-        float height = 3.0f;        // point visé, au-dessus de l'origine de la cible
-        float pitch = -15.0f;       // degrés ; négatif = regarde vers le bas
-    };
     GameCamera gameCamera;
+    GameCamera gameCameraBeforPlay; // réglages rendus au Stop (les scripts peuvent les changer)
     float gameCamYaw = 0.0f;        // orientation pendant le Play
     float gameCamPitch = 0.0f;      // ... et son inclinaison, que le joueur change
     float gameCamDist = 0.0f;       // distance réelle : raccourcie par les murs 

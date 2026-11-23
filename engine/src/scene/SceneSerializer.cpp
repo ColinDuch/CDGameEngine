@@ -57,7 +57,8 @@ void SceneSerializer::save(const std::string& path,
                            const std::vector<AnimationRefData>& animationsData,
                            const std::vector<NotifyData>& notifiesData,
                            const std::vector<RemovedClipData>& removedClips,
-                           const std::vector<RemovedClipData>& inPlaceClips) {
+                           const std::vector<RemovedClipData>& inPlaceClips,
+                           const GameCamera& gameCamera) {
     JsonWriter w;
     w.beginObject();
 
@@ -222,6 +223,15 @@ void SceneSerializer::save(const std::string& path,
     }
     w.endArray();
 
+    w.key("gameCamera");
+    w.beginObject();
+    w.key("mode");     w.value(std::string(GameCamera::modeName(gameCamera.mode)));
+    w.key("target");   w.value(static_cast<double>(gameCamera.targetId));
+    w.key("distance"); w.value(static_cast<double>(gameCamera.distance));
+    w.key("height");   w.value(static_cast<double>(gameCamera.height));
+    w.key("pitch");    w.value(static_cast<double>(gameCamera.pitch));
+    w.endObject();
+
     w.endObject();   // ferme la RACINE
 
     std::ofstream file(path);
@@ -372,6 +382,18 @@ SceneData SceneSerializer::load(const std::string& path) {
             ip.clipName = (r.has("clip") && r["clip"].isString()) ? r["clip"].asString() : std::string("");
             if (!ip.meshName.empty() && !ip.clipName.empty()) scene.inPlaceClips.push_back(ip);
         }
+    }
+
+    if (root.has("gameCamera") && root["gameCamera"].isObject()) {
+        const JsonValue& g = root["gameCamera"];
+        auto num = [&](const char* k, float def) {
+            return (g.has(k) && g[k].isNumber()) ? static_cast<float>(g[k].asDouble()) : def;
+        };
+        if (g.has("mode") && g["mode"].isString()) GameCamera::modeFromName(g["mode"].asString(), scene.gameCamera.mode);
+        scene.gameCamera.targetId = static_cast<uint32_t>(num("target", 0.0f));
+        scene.gameCamera.distance = num("distance", 5.0f);
+        scene.gameCamera.height   = num("height", 1.6f);
+        scene.gameCamera.pitch    = num("pitch", -15.0f);
     }
 
     return scene;

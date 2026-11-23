@@ -5,6 +5,7 @@
 
 #include <engine/core/Localization.hpp>
 #include <engine/core/GameInput.hpp>
+#include <engine/core/GameCamera.hpp>
 
 #include <engine/physics/PhysicsWorld.hpp>
 
@@ -121,6 +122,10 @@ void ScriptEngine::registerApi(lua_State* L) {
     reg("addImpulse", &ScriptEngine::api_addImpulse);
     reg("setVelocity", &ScriptEngine::api_setVelocity);
     reg("raycast", &ScriptEngine::api_raycast);
+    reg("setCameraMode", &ScriptEngine::api_setCameraMode);
+    reg("setCameraTarget", &ScriptEngine::api_setCameraTarget);
+    reg("setCameraDistance", &ScriptEngine::api_setCameraDistance);
+    reg("setCameraYaw", &ScriptEngine::api_setCameraYaw);
 
     lua_setglobal(L, "Engine");
 }
@@ -425,6 +430,44 @@ int ScriptEngine::api_raycast(lua_State* L) {
     lua_pushnumber(L, hit.normal.x);    lua_pushnumber(L, hit.normal.y);    lua_pushnumber(L, hit.normal.z);
     lua_pushinteger(L, index);
     return 9;
+}
+
+
+/*
+---------------------------------------------------------------------------
+Caméra de jeu (panneau Camera) : les réglages d'avant le Play reviennent au Stop
+---------------------------------------------------------------------------
+*/
+// setCameraMode("third_person") : "editor", "third_person", "first_person" ou "top_down"
+int ScriptEngine::api_setCameraMode(lua_State* L) {
+    ScriptEngine* self = selfFromUpvalue(L);
+    const char* name = luaL_checkstring(L, 1);
+    if (!self->gameCamera || !GameCamera::modeFromName(name, self->gameCamera->mode))
+        return luaL_error(L, Lang::tr("unknown camera mode: %s"), name);
+    return 0;
+}
+
+// setCameraTarget(i) : l'objet que la caméra suit
+int ScriptEngine::api_setCameraTarget(lua_State* L) {
+    ScriptEngine* self = selfFromUpvalue(L);
+    SceneObject* o = objectAt(L, 1);
+    if (self->gameCamera) self->gameCamera->targetId = o->id;
+    return 0;
+}
+
+// setCameraDistance(mètres)
+int ScriptEngine::api_setCameraDistance(lua_State* L) {
+    ScriptEngine* self = selfFromUpvalue(L);
+    const float d = static_cast<float>(luaL_checknumber(L, 1));
+    if (self->gameCamera) self->gameCamera->distance = std::max(d, 0.5f);
+    return 0;
+}
+
+// setCameraYaw(degrés) : oriente la caméra, par exemple derrière le personnage
+int ScriptEngine::api_setCameraYaw(lua_State* L) {
+    ScriptEngine* self = selfFromUpvalue(L);
+    if (self->gameCamYaw) *self->gameCamYaw = static_cast<float>(luaL_checknumber(L, 1));
+    return 0;
 }
 
 

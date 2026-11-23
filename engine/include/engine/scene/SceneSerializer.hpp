@@ -2,6 +2,9 @@
 
 #include <engine/renderer/SceneObject.hpp>
 #include <engine/renderer/Camera.hpp>
+
+#include <engine/core/GameCamera.hpp>
+
 #include <memory>
 #include <string>
 #include <vector>
@@ -100,6 +103,7 @@ struct SceneData {
     std::vector<NotifyData> notifies;
     std::vector<RemovedClipData> removedClips;
     std::vector<RemovedClipData> inPlaceClips;   // meme forme : un clip designe par mesh + nom
+    GameCamera gameCamera;  // absente des anciennes scènes :caméra de l'éditeur
 };
 
 namespace SceneSerializer {
@@ -113,7 +117,8 @@ namespace SceneSerializer {
               const std::vector<AnimationRefData>& animationsData,
               const std::vector<NotifyData>& notifiesData,
               const std::vector<RemovedClipData>& removedClips,
-              const std::vector<RemovedClipData>& inPlaceClips);
+              const std::vector<RemovedClipData>& inPlaceClips,
+              const GameCamera& gameCamera);
 
     SceneData load(const std::string& path);
 }
