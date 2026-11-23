@@ -16,6 +16,7 @@
 #include <Jolt/Physics/Collision/RayCast.h>
 #include <Jolt/Physics/Collision/CastResult.h>
 #include <Jolt/Physics/Body/BodyLock.h>
+#include <Jolt/Physics/Body/BodyFilter.h>
 
 #include <algorithm>
 #include <thread>
@@ -397,7 +398,8 @@ void PhysicsWorld::setVelocity(uint32_t objectId, const glm::vec3& velocity) {
 
 uint32_t PhysicsWorld::terrainId() { return TERRAIN_ID; }
 
-PhysicsWorld::RayHit PhysicsWorld::raycast(const glm::vec3& origin, const glm::vec3& direction, float maxDistance) const {
+PhysicsWorld::RayHit PhysicsWorld::raycast(const glm::vec3& origin, const glm::vec3& direction, float maxDistance,
+                                           uint32_t ignoreObjectid) const {
     RayHit out;
     const float len = glm::length(direction);
     if (len < 1e-6f || maxDistance <= 0.0f) return out;
@@ -405,9 +407,14 @@ PhysicsWorld::RayHit PhysicsWorld::raycast(const glm::vec3& origin, const glm::v
     // chez Jolt, la direction du rayon contient se longueur 
     const JPH::RRayCast ray(JPH::RVec3(toJolt(origin)), toJolt(direction / len * maxDistance));
     JPH::RayCastResult hit;
+    // le corps à ignorer ; un BodyId vide n'ignore rien 
+    JPH::BodyID ignored;
+    const auto ig = impl->bodies.find(ignoreObjectid);
+    if (ignoreObjectid != 0 && ig != impl->bodies.end()) ignored = ig->second;
+    const JPH::IgnoreSingleBodyFilter bodyFilter(ignored);
     if (!impl->system.GetNarrowPhaseQuery().CastRay(ray, hit, 
         impl->system.GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
-        impl->system.GetDefaultLayerFilter(Layers::MOVING))) 
+        impl->system.GetDefaultLayerFilter(Layers::MOVING), bodyFilter)) 
         return out;
     
     const JPH::RVec3 p = ray.GetPointOnRay(hit.mFraction);

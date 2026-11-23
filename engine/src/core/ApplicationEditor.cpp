@@ -1353,5 +1353,17 @@ void Application::updateGameCamera(float dt) {
     const glm::vec3 pivot = target->position + glm::vec3(0.0f, 0.0f, gameCamera.height);
     const float yaw = glm::radians(gameCamYaw), pitch = glm::radians(gameCamera.pitch);
     const glm::vec3 front(std::cos(yaw) * std::cos(pitch), std::sin(yaw) * std::cos(pitch), std::sin(pitch));
-    camera->setState(pivot - front * gameCamera.distance, gameCamYaw, gameCamera.pitch);
+
+    // --- ne pas traverser les murs : un rayon du point vise vers la caméra ---
+    // un obstacle sur le trajet ramène la caméra juste devant lui
+    constexpr float WALL_MARGIN = 0.25f;
+    float wanted = gameCamera.distance;
+    const PhysicsWorld::RayHit hit = physics.raycast(pivot, -front, gameCamera.distance + WALL_MARGIN, target->id);
+    if (hit.hit) wanted = std::max(hit.distance - WALL_MARGIN, 0.3f);
+
+    // se rapprocher : tout de suite (sinon on verrait à travers le mur) ; s'éloigner en douceur
+    if (wanted < gameCamDist) gameCamDist = wanted;
+    else gameCamDist += (wanted - gameCamDist) * std::min(1.0f, 6.0f * dt);
+
+    camera->setState(pivot - front * gameCamDist, gameCamYaw, gameCamPitch);
 }

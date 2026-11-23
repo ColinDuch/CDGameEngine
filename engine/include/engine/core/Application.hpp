@@ -385,13 +385,14 @@ private:
         enum class Mode { Editor, ThirdPerson }; // nouveaux modes : toujours à la fin 
         Mode mode = Mode::Editor;   // Editor : la caméra de l'éditeur reste en play
         uint32_t targetId = 0;      // objet suivi, par son id stable
-        float distance = 5.0f;      // mètres entre la caméra et le point visé 
-        float height = 1.6f;        // point visé, au-dessus de l'origine de la cible
+        float distance = 10.0f;     // mètres entre la caméra et le point visé 
+        float height = 3.0f;        // point visé, au-dessus de l'origine de la cible
         float pitch = -15.0f;       // degrés ; négatif = regarde vers le bas
     };
     GameCamera gameCamera;
     float gameCamYaw = 0.0f;        // orientation pendant le Play
     float gameCamPitch = 0.0f;      // ... et son inclinaison, que le joueur change
+    float gameCamDist = 0.0f;       // distance réelle : raccourcie par les murs 
     glm::vec2 lookDelta{ 0.0f };    // mouvement de souris de l'image, en pixels
     glm::vec3 editorCamPos{ 0.0f }; // camera de l'éditeur, rendue au Stop
     float editorCamYaw = 0.0f, editorCamPitch = 0.0f;

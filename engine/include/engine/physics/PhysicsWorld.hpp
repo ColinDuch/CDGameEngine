@@ -58,7 +58,9 @@ class PhysicsWorld {
             glm::vec3 normal{ 0.0f };   // perpendiculaire a la surface, vers l exterieur
             uint32_t objectId = 0;      // id de l objet touche ; terrainId() pour le terrain
         };
-        RayHit raycast(const glm::vec3& origin, const glm::vec3& direction, float maxDistance) const;
+        // ignoreObjectid : un objet que le rayon traverse (celui qui tire, la cible de la caméra...)
+        RayHit raycast(const glm::vec3& origin, const glm::vec3& direction, float maxDistance,
+                       uint32_t ignoreObjectid = 0) const;
         static uint32_t terrainId();
 
         // terrain statique : grille de hauteurs resX x et resY (index = iy*resX + ix), centree, Z-up

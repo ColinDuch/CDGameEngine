@@ -1059,6 +1059,7 @@ void Application::startPlay() {
     editorCamPitch= camera->getPitch();
     gameCamYaw = editorCamYaw;
     gameCamPitch = gameCamera.pitch;
+    gameCamDist = gameCamera.distance;
     lookDelta = glm::vec2(0.0f);
     // la caméra de jeu : la souris est capturée pour regarder autour (Tab la libère)
     if (gameCameraActive()) window->setcursorLocked(true);
@@ -1076,8 +1077,6 @@ void Application::startPlay() {
         if (o->parent >= 0) continue;   // un enfant suit son parent : pas encore gere
         if (o->meshIndex < 0 || o->meshIndex >= static_cast<int>(availableMeshes.size())) continue;
 
-        
-
         const Mesh& mesh = *availableMeshes[o->meshIndex];
         const glm::vec3 center = (mesh.getBoundsMin() + mesh.getBoundsMax()) * 0.5f * o->scale;
         const glm::vec3 half = (mesh.getBoundsMax() - mesh.getBoundsMin()) * 0.5f * o->scale;
@@ -1092,7 +1091,6 @@ void Application::startPlay() {
 
         physics.addBox(o->id, o->position, o->orientation, center, half,
             o->bodyType == SceneObject::BodyType::Dynamic, o->mass);
-
     
     }
 
