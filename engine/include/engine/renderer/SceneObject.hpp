@@ -60,6 +60,8 @@ public:
     enum class BodyType { None, Static, Dynamic, Character }; // nouveaux types : toujours a la fin
     BodyType bodyType = BodyType::None;     // aucun corps par default : decor sans collision
     float mass = 1.0f;      // kg, pour un corps dynamique 
+    // caché à l'écran pendant le play (caméra à la première personne) ; son ombre reste 
+    bool hiddenInView = false;
     // nom du type dans scene.json : un texte reste lisible et ne depend pas de l ordre de l enum
     static const char* bodyTypeName(BodyType t) {
         switch (t) {

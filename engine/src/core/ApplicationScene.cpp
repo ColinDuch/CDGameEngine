@@ -1115,6 +1115,7 @@ void Application::stopPlay() {
 
     camera->setState(editorCamPos, editorCamYaw, editorCamPitch);   // la caméra de l'éditeur revient 
     window->setcursorLocked(false);     // la souris est rendue 
+    for (auto& o : sceneObjects) o->hiddenInView = false;   // tout redevient visible
 
     // Restauration : l'etat d'edition doit etre intact.
     for (size_t i = 0; i < sceneObjects.size() && i < playSnapshot.size(); ++i) {

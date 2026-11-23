@@ -382,7 +382,7 @@ private:
 
     // --- caméra de jeu : en Play, elle remplace la caméra de l'éditeur
     struct GameCamera {
-        enum class Mode { Editor, ThirdPerson }; // nouveaux modes : toujours à la fin 
+        enum class Mode { Editor, ThirdPerson, FirstPerson, TopDown }; // nouveaux modes : toujours à la fin 
         Mode mode = Mode::Editor;   // Editor : la caméra de l'éditeur reste en play
         uint32_t targetId = 0;      // objet suivi, par son id stable
         float distance = 10.0f;     // mètres entre la caméra et le point visé 

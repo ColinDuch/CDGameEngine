@@ -979,10 +979,10 @@ void Application::drawCameraPanel() {
         camera->setMovementSpeed(sp);
     
     // ---- Camera de jeu ----
-    ImGui::SeparatorText(Lang::tr("Game camera"));
-    const char* modes[] = { Lang::tr("Editor camera"), Lang::tr("Third person") };
+    ImGui::SeparatorText(Lang::tr("Game camera"));    
+    const char* modes[] = { Lang::tr("Editor camera"), Lang::tr("Third person"), Lang::tr("First person"), Lang::tr("Top-down") };
     int mode = static_cast<int>(gameCamera.mode);
-    if (ImGui::Combo(Lang::tr("Mode"), &mode, modes, 2)) gameCamera.mode = static_cast<GameCamera::Mode>(mode);
+    if (ImGui::Combo(Lang::tr("Mode"), &mode, modes, 4)) gameCamera.mode = static_cast<GameCamera::Mode>(mode);
 
     if (gameCamera.mode != GameCamera::Mode::Editor) {
         const int ti = indexOfObject(gameCamera.targetId);
@@ -994,9 +994,11 @@ void Application::drawCameraPanel() {
             }
             ImGui::EndCombo();
         }
-        ImGui::DragFloat(Lang::tr("Distance"), &gameCamera.distance, 0.05f, 0.5f, 100.0f, "%.2f m");
-        ImGui::DragFloat(Lang::tr("Height"), &gameCamera.height, 0.02f, -5.0f, 10.0f, "%.2f m");
-        ImGui::DragFloat(Lang::tr("Pitch"), &gameCamera.pitch, 0.5f, -89.0f, 89.0f, "%.0f deg");
+        const bool firstPerson = gameCamera.mode == GameCamera::Mode::FirstPerson;
+        if (!firstPerson) ImGui::DragFloat(Lang::tr("Distance"), &gameCamera.distance, 0.05f, 0.5f, 100.0f, "%.2f m");
+        ImGui::DragFloat(firstPerson ? Lang::tr("Eye height") : Lang::tr("Height"), &gameCamera.height, 0.02f, -5.0f, 10.0f, "%.2f m");
+        ImGui::DragFloat(gameCamera.mode == GameCamera::Mode::TopDown ? Lang::tr("Fixed angle") : Lang::tr("Pitch"),
+                         &gameCamera.pitch, 0.5f, -89.0f, 89.0f, "%.0f deg");
         if (ti < 0) {
             ImGui::TextColored(ImVec4(1.0f, 0.7f, 0.2f, 1.0f), "%s", Lang::tr("No target: the editor camera stays in Play."));
         }

@@ -211,6 +211,7 @@ void CommandBuffer::recordFrame(uint32_t imageIndex, const std::function<void(Vk
     auto drawObject = [&](int idx) {
         if (idx < 0 || idx >= static_cast<int>(sceneObjects.size())) return;
         const auto& object = sceneObjects[idx];
+        if (object->hiddenInView) return;    // la passe d'ombre, elle, le dessine toujours
 
         // Cet objet est-il skinne ? Il lui faut un buffer de poids ET un set d'os.
         const bool skinned =

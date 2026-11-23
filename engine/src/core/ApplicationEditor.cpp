@@ -1323,14 +1323,16 @@ bool Application::gameCameraActive() const {
 }
 
 void Application::updateGameCamera(float dt) {
+    // la cible n'est cachée qu'à la premiere personne : on repart de zéro à chaque image
+    for (auto& o : sceneObjects) o->hiddenInView = false;
     if (!gameCameraActive()) return;
     const auto& target = sceneObjects[indexOfObject(gameCamera.targetId)];
 
     // --- regarder autour : la souris, puis les actions look_* (flèches, stick droit) ---
     constexpr float MOUSE_DEG_PER_PIXEL = 0.15f;
     constexpr float STICK_DEG_PER_SEC = 140.0f;
-    gameCamYaw -= lookDelta.x * MOUSE_DEG_PER_PIXEL;    // souris à droite : on tourne à droite
-    gameCamPitch += lookDelta.y * MOUSE_DEG_PER_PIXEL;  // souris en haut : on regarde en haut
+    gameCamYaw   -= lookDelta.x * MOUSE_DEG_PER_PIXEL;     // souris à droite : on tourne à droite
+    gameCamPitch += lookDelta.y * MOUSE_DEG_PER_PIXEL;     // souris en haut : on regarde en haut
     lookDelta = glm::vec2(0.0f);
 
     const int l = gameInput.find("look_left"), r = gameInput.find("look_right");
@@ -1346,22 +1348,32 @@ void Application::updateGameCamera(float dt) {
     }
     gameCamYaw   -= sx * STICK_DEG_PER_SEC * dt;
     gameCamPitch += sy * STICK_DEG_PER_SEC * dt;
-    gameCamPitch = glm::clamp(gameCamPitch, -80.0f, 60.0f);    // ni sous les pieds, ni au zenith
 
-    // troisième personne : la caméra recule depuis un point visé au-dessus des pieds,
-    // dans la direction opposée à son regard
+    const bool firstPerson = gameCamera.mode == GameCamera::Mode::FirstPerson;
+    if (gameCamera.mode == GameCamera::Mode::TopDown) gameCamPitch = gameCamera.pitch;   // vue de dessus : angle fixe
+    // à la première personne, on peut regarder ses pieds ; derrière le personnage, non
+    gameCamPitch = firstPerson ? glm::clamp(gameCamPitch, -85.0f, 85.0f)
+                               : glm::clamp(gameCamPitch, -80.0f, 60.0f);
+
     const glm::vec3 pivot = target->position + glm::vec3(0.0f, 0.0f, gameCamera.height);
-    const float yaw = glm::radians(gameCamYaw), pitch = glm::radians(gameCamera.pitch);
+    const float yaw = glm::radians(gameCamYaw), pitch = glm::radians(gameCamPitch);
     const glm::vec3 front(std::cos(yaw) * std::cos(pitch), std::sin(yaw) * std::cos(pitch), std::sin(pitch));
 
-    // --- ne pas traverser les murs : un rayon du point vise vers la caméra ---
-    // un obstacle sur le trajet ramène la caméra juste devant lui
+    // première personne : la camera est dans les yeux, et le corps est caché (pas son ombre)
+    if (firstPerson) {
+        target->hiddenInView = true;
+        camera->setState(pivot, gameCamYaw, gameCamPitch);
+        return;
+    }
+
+    // troisième personne et vue de dessus : la caméra recule depuis le point visé,
+    // dans la direction opposée a son regard. Un obstacle sur le trajet la ramène devant lui.
     constexpr float WALL_MARGIN = 0.25f;
     float wanted = gameCamera.distance;
     const PhysicsWorld::RayHit hit = physics.raycast(pivot, -front, gameCamera.distance + WALL_MARGIN, target->id);
     if (hit.hit) wanted = std::max(hit.distance - WALL_MARGIN, 0.3f);
 
-    // se rapprocher : tout de suite (sinon on verrait à travers le mur) ; s'éloigner en douceur
+    // se rapprocher : tout de suite (sinon on verrait à travers le mur) ; s'éloigner : en douceur
     if (wanted < gameCamDist) gameCamDist = wanted;
     else gameCamDist += (wanted - gameCamDist) * std::min(1.0f, 6.0f * dt);
 
