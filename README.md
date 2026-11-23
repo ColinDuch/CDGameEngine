@@ -384,7 +384,7 @@ Plus tard : le déplacement issu de l'animation (root motion) et les cascaded sh
 
 ## Licence
 
-Le code du moteur est distribué sous **GNU GPL v3** (voir `LICENSE`). Les bibliothèques embarquées ou téléchargées conservent leurs propres licences, toutes permissives (MIT, zlib…).
+Le code du moteur est distribué sous **Mozilla Public License 2.0** (voir `LICENSE`) : on peut l'utiliser librement, y compris pour des jeux commerciaux fermés, mais toute modification des fichiers du moteur doit rester ouverte. Les bibliothèques embarquées ou téléchargées conservent leurs propres licences, toutes permissives (MIT, BSD, zlib…).
 
 ## Notes
 
