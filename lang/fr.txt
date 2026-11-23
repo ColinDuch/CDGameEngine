@@ -461,3 +461,14 @@ Reload failed: %s=Échec du rechargement : %s
 
 Trackpad mode=Mode pavé tactile
 Two fingers: orbit. Shift + two fingers: pan. Ctrl + two fingers: zoom. Alt + click and drag works too, with or without this mode.=Deux doigts : orbite. Maj + deux doigts : déplacement. Ctrl + deux doigts : zoom. Alt + clic glissé fonctionne aussi, avec ou sans ce mode.
+
+# --- Camera de jeu ---
+Game camera=Caméra de jeu
+Editor camera=Caméra de l'éditeur
+Third person=Troisième personne
+Mode=Mode
+Target=Cible
+Distance=Distance
+Height=Hauteur
+Pitch=Inclinaison
+No target: the editor camera stays in Play.=Pas de cible : la caméra de l'éditeur reste en Play.

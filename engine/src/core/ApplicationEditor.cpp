@@ -40,6 +40,8 @@ void Application::updateCamera(float deltaTime) {
     float dy     = static_cast<float>(window->getMouseDeltaY());
     float wheel  = static_cast<float>(window->getScrollDelta());
     float wheelX = static_cast<float>(window->getScrollDeltaX());
+    // en Play avec une caméra de jeu : ni orbite ni vol libre, la caméra suit sa cible
+    if (gameCameraActive()) return;
 
     if (window->isCursorLocked()) {
         // Mode vol libre (Tab) : inchange.
@@ -1310,4 +1312,20 @@ void Application::setEditorMode(EditorMode m) {
     }
 
     editorMode = m;
+}
+
+bool Application::gameCameraActive() const {
+    return isPlaying && gameCamera.mode != GameCamera::Mode::Editor && indexOfObject(gameCamera.targetId) >=0;
+}
+
+void Application::updateGameCamera() {
+    if (!gameCameraActive()) return;
+    const auto& target = sceneObjects[indexOfObject(gameCamera.targetId)];
+
+    // troisième personne : la caméra recule depuis un point visé au-dessus des pieds,
+    // dans la direction opposée à son regard
+    const glm::vec3 pivot = target->position + glm::vec3(0.0f, 0.0f, gameCamera.height);
+    const float yaw = glm::radians(gameCamYaw), pitch = glm::radians(gameCamera.pitch);
+    const glm::vec3 front(std::cos(yaw) * std::cos(pitch), std::sin(yaw) * std::cos(pitch), std::sin(pitch));
+    camera->setState(pivot - front * gameCamera.distance, gameCamYaw, gameCamera.pitch);
 }

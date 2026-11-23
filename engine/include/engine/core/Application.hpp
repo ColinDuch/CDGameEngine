@@ -379,6 +379,23 @@ private:
     bool deselectKeyWas = false;
     bool orbitAroundSelection = true;
     bool trackpadMode = false;      // deux doigts = orbite, Maj = deplacement, Ctrl = zoom
+
+    // --- caméra de jeu : en Play, elle remplace la caméra de l'éditeur
+    struct GameCamera {
+        enum class Mode { Editor, ThirdPerson }; // nouveaux modes : toujours à la fin 
+        Mode mode = Mode::Editor;   // Editor : la caméra de l'éditeur reste en play
+        uint32_t targetId = 0;      // objet suivi, par son id stable
+        float distance = 5.0f;      // mètres entre la caméra et le point visé 
+        float height = 1.6f;        // point visé, au-dessus de l'origine de la cible
+        float pitch = -15.0f;       // degrés ; négatif = regarde vers le bas
+    };
+    GameCamera gameCamera;
+    float gameCamYaw = 0.0f;        // orientation pendant le Play
+    glm::vec3 editorCamPos{ 0.0f }; // camera de l'éditeur, rendue au Stop
+    float editorCamYaw = 0.0f, editorCamPitch = 0.0f;
+    bool gameCameraActive() const;
+    void updateGameCamera();
+
     InputMap input;
     GameInput gameInput;    // actions de jeu du projet (input.json)
     PhysicsWorld physics;   // Jolt : initialise avec l application

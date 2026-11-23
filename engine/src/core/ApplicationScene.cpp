@@ -1053,6 +1053,12 @@ void Application::startPlay() {
     isPlaying = true;
     physics.beginPlay();
 
+    // la caméra de l'éditeur est mise de coté ; la caméra de jeu part dans la même direction
+    editorCamPos = camera->getPosition();
+    editorCamYaw = camera->getYaw();
+    editorCamPitch= camera->getPitch();
+    gameCamYaw = editorCamYaw;
+
     // le terrain affiche devient solide
     if (terrain && terrainVisible) {
         physics.addTerrain(terrain->heights(), terrain->getResX(), terrain->getResY(),
@@ -1104,6 +1110,8 @@ void Application::startPlay() {
 void Application::stopPlay() {
     isPlaying = false;
     physics.endPlay();
+
+    camera->setState(editorCamPos, editorCamYaw, editorCamPitch);   // la caméra de l'éditeur revient 
 
     // Restauration : l'etat d'edition doit etre intact.
     for (size_t i = 0; i < sceneObjects.size() && i < playSnapshot.size(); ++i) {

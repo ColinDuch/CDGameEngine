@@ -977,6 +977,30 @@ void Application::drawCameraPanel() {
     float sp = camera->getMovementSpeed();
     if (ImGui::DragFloat(Lang::tr("Fly speed"), &sp, 0.5f, 0.1f, 2000.0f, "%.1f"))
         camera->setMovementSpeed(sp);
+    
+    // ---- Camera de jeu ----
+    ImGui::SeparatorText(Lang::tr("Game camera"));
+    const char* modes[] = { Lang::tr("Editor camera"), Lang::tr("Third person") };
+    int mode = static_cast<int>(gameCamera.mode);
+    if (ImGui::Combo(Lang::tr("Mode"), &mode, modes, 2)) gameCamera.mode = static_cast<GameCamera::Mode>(mode);
+
+    if (gameCamera.mode != GameCamera::Mode::Editor) {
+        const int ti = indexOfObject(gameCamera.targetId);
+        if (ImGui::BeginCombo(Lang::tr("Target"), ti >= 0 ? sceneObjects[ti]->name.c_str() : Lang::tr("(none)"))) {
+            for (int i = 0; i < static_cast<int>(sceneObjects.size()); ++i) {
+                ImGui::PushID(i);
+                if (ImGui::Selectable(sceneObjects[i]->name.c_str(), i == ti)) gameCamera.targetId = sceneObjects[i]->id;
+                ImGui::PopID();
+            }
+            ImGui::EndCombo();
+        }
+        ImGui::DragFloat(Lang::tr("Distance"), &gameCamera.distance, 0.05f, 0.5f, 100.0f, "%.2f m");
+        ImGui::DragFloat(Lang::tr("Height"), &gameCamera.height, 0.02f, -5.0f, 10.0f, "%.2f m");
+        ImGui::DragFloat(Lang::tr("Pitch"), &gameCamera.pitch, 0.5f, -89.0f, 89.0f, "%.0f deg");
+        if (ti < 0) {
+            ImGui::TextColored(ImVec4(1.0f, 0.7f, 0.2f, 1.0f), "%s", Lang::tr("No target: the editor camera stays in Play."));
+        }
+    }
 
     ImGui::End();
 }
