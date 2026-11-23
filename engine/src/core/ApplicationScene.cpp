@@ -1058,6 +1058,10 @@ void Application::startPlay() {
     editorCamYaw = camera->getYaw();
     editorCamPitch= camera->getPitch();
     gameCamYaw = editorCamYaw;
+    gameCamPitch = gameCamera.pitch;
+    lookDelta = glm::vec2(0.0f);
+    // la caméra de jeu : la souris est capturée pour regarder autour (Tab la libère)
+    if (gameCameraActive()) window->setcursorLocked(true);
 
     // le terrain affiche devient solide
     if (terrain && terrainVisible) {
@@ -1112,6 +1116,7 @@ void Application::stopPlay() {
     physics.endPlay();
 
     camera->setState(editorCamPos, editorCamYaw, editorCamPitch);   // la caméra de l'éditeur revient 
+    window->setcursorLocked(false);     // la souris est rendue 
 
     // Restauration : l'etat d'edition doit etre intact.
     for (size_t i = 0; i < sceneObjects.size() && i < playSnapshot.size(); ++i) {

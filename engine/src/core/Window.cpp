@@ -79,6 +79,7 @@ double Window::getMouseDeltaY() {
 
 void Window::toggleCursorLock() {
     cursorLocked = !cursorLocked;
+    firstMouse = true;  // le cusreur peut sauter au changement de mode : pas de grand mouvement fantome
     glfwSetInputMode(window, GLFW_CURSOR, cursorLocked ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
 }
 

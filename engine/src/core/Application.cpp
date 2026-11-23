@@ -397,7 +397,7 @@ void Application::drawFrame() {
         physics.step(deltaTime);    // apres les scripts, avant les animations
         // les objets suivent leurs corps physique
         for (auto& o : sceneObjects) physics.getTransform(o->id, o->position, o->orientation);
-        updateGameCamera(); // après la physique : elle suit la position finale
+        updateGameCamera(deltaTime); // après la physique : elle suit la position finale
     }
     updateAnimations(deltaTime);
     updateUniformBuffer();

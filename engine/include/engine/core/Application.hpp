@@ -391,10 +391,12 @@ private:
     };
     GameCamera gameCamera;
     float gameCamYaw = 0.0f;        // orientation pendant le Play
+    float gameCamPitch = 0.0f;      // ... et son inclinaison, que le joueur change
+    glm::vec2 lookDelta{ 0.0f };    // mouvement de souris de l'image, en pixels
     glm::vec3 editorCamPos{ 0.0f }; // camera de l'éditeur, rendue au Stop
     float editorCamYaw = 0.0f, editorCamPitch = 0.0f;
     bool gameCameraActive() const;
-    void updateGameCamera();
+    void updateGameCamera(float dt);
 
     InputMap input;
     GameInput gameInput;    // actions de jeu du projet (input.json)

@@ -31,6 +31,10 @@ void GameInput::resetDefaults() {
     add("interact", GLFW_KEY_E, GLFW_GAMEPAD_BUTTON_X, -1, 1.0f);
     add("attack", GLFW_KEY_F, GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER, -1, 1.0f);
     add("pause", GLFW_KEY_ESCAPE, GLFW_GAMEPAD_BUTTON_START, -1, 1.0f);
+    add("look_left",     GLFW_KEY_LEFT,       -1, GLFW_GAMEPAD_AXIS_RIGHT_X, -1.0f);   // camera : fleches et stick droit
+    add("look_right",    GLFW_KEY_RIGHT,      -1, GLFW_GAMEPAD_AXIS_RIGHT_X,  1.0f);
+    add("look_up",       GLFW_KEY_UP,         -1, GLFW_GAMEPAD_AXIS_RIGHT_Y, -1.0f);
+    add("look_down",     GLFW_KEY_DOWN,       -1, GLFW_GAMEPAD_AXIS_RIGHT_Y,  1.0f);
 
     sequences.clear();      // un projet sans input.json part de zero
     resizeState();

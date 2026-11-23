@@ -41,7 +41,11 @@ void Application::updateCamera(float deltaTime) {
     float wheel  = static_cast<float>(window->getScrollDelta());
     float wheelX = static_cast<float>(window->getScrollDeltaX());
     // en Play avec une caméra de jeu : ni orbite ni vol libre, la caméra suit sa cible
-    if (gameCameraActive()) return;
+    if (gameCameraActive()) {
+        // la souris ne sert à regarder que si elle est capturée (Tab la libère pour l'insterface)
+        if (window->isCursorLocked()) lookDelta += glm::vec2(dx, dy);
+        return;
+    }
 
     if (window->isCursorLocked()) {
         // Mode vol libre (Tab) : inchange.
@@ -1318,9 +1322,31 @@ bool Application::gameCameraActive() const {
     return isPlaying && gameCamera.mode != GameCamera::Mode::Editor && indexOfObject(gameCamera.targetId) >=0;
 }
 
-void Application::updateGameCamera() {
+void Application::updateGameCamera(float dt) {
     if (!gameCameraActive()) return;
     const auto& target = sceneObjects[indexOfObject(gameCamera.targetId)];
+
+    // --- regarder autour : la souris, puis les actions look_* (flèches, stick droit) ---
+    constexpr float MOUSE_DEG_PER_PIXEL = 0.15f;
+    constexpr float STICK_DEG_PER_SEC = 140.0f;
+    gameCamYaw -= lookDelta.x * MOUSE_DEG_PER_PIXEL;    // souris à droite : on tourne à droite
+    gameCamPitch += lookDelta.y * MOUSE_DEG_PER_PIXEL;  // souris en haut : on regarde en haut
+    lookDelta = glm::vec2(0.0f);
+
+    const int l = gameInput.find("look_left"), r = gameInput.find("look_right");
+    const int u = gameInput.find("look_up"), d = gameInput.find("look_down");
+    float sx = 0.0f, sy = 0.0f;
+    if (l >= 0 && r >= 0 && u >= 0 && d >= 0) {
+        sx = gameInput.value(r) - gameInput.value(l);
+        sy = gameInput.value(u) - gameInput.value(d);
+    } else if (const GLFWgamepadstate* pad = input.gamepadState()) {
+        // projet plus ancien, sans actions look_* : le stick droit directement
+        sx = InputMap::padValue(pad, -1, GLFW_GAMEPAD_AXIS_RIGHT_X, 1.0f) - InputMap::padValue(pad, -1, GLFW_GAMEPAD_AXIS_RIGHT_X, -1.0f);
+        sy = InputMap::padValue(pad, -1, GLFW_GAMEPAD_AXIS_RIGHT_Y, -1.0f) - InputMap::padValue(pad, -1, GLFW_GAMEPAD_AXIS_RIGHT_Y, 1.0f);
+    }
+    gameCamYaw   -= sx * STICK_DEG_PER_SEC * dt;
+    gameCamPitch += sy * STICK_DEG_PER_SEC * dt;
+    gameCamPitch = glm::clamp(gameCamPitch, -80.0f, 60.0f);    // ni sous les pieds, ni au zenith
 
     // troisième personne : la caméra recule depuis un point visé au-dessus des pieds,
     // dans la direction opposée à son regard

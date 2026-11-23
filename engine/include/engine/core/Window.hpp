@@ -31,6 +31,7 @@ public:
 
     bool isCursorLocked() const { return cursorLocked; }
     void toggleCursorLock();
+    void setcursorLocked(bool locked) {if (locked != cursorLocked) toggleCursorLock(); }
 
     double getScrollDelta();
     double getScrollDeltaX();   // defilement horizontal (pave tactile a deux doigts)
