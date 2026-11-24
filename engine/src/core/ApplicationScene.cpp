@@ -431,12 +431,7 @@ void Application::loadScene() {
         std::cout << "[load] fichier : " << scenePath.string() << std::endl;
         SceneData scene = SceneSerializer::load(scenePath.string());
 
-        auto resolve = [&](const std::string& p) -> std::string {
-            if (p.empty()) return p;
-            fs::path candidate = fs::path(currentProjectDir) / p;
-            if (fs::exists(candidate)) return candidate.string();
-            return p;   // repli : ancien chemin absolu/relatif au moteur
-        };
+        auto resolve = [&](const std::string& p) { return projectPath(p); };
 
         // 1. Vider la scene actuelle.
         clearScene();
@@ -494,75 +489,8 @@ void Application::loadScene() {
 
         // 3. Recreer chaque objet : un Mesh depuis les chemins, puis un SceneObject.
         for (size_t oi = 0; oi < scene.objects.size(); ++oi) {
-            const auto& objData = scene.objects[oi];
-            std::string modelPath   = resolve(objData.modelPath);
-            std::string texturePath = resolve(objData.texturePath);
-
-            int meshIndex = -1;
-
-            if (objData.modelPath.rfind("builtin:", 0) == 0) {
-                const std::string bn = objData.modelPath.substr(8);
-                for (size_t i = 0; i < availableMeshes.size(); ++i) {
-                    if (availableMeshes[i]->getBuiltinName() == bn) {
-                        meshIndex = static_cast<int>(i);
-                        break;
-                    }
-                }
-                if (meshIndex < 0) {
-                    sceneMessage += " | " + Lang::fmt("Unknown primitive: %s", bn.c_str());
-                    continue;
-                }
-            }
-
-            // un model importe : meme fichier, meme texture, meme redressement 
-            // (inutile pour une primitive, deja trouvee juste au dessus)
-            if (meshIndex < 0) {
-                for (size_t i = 0; i < availableMeshes.size(); i++) {
-                    if (availableMeshes[i]->getModelPath() == modelPath && 
-                        availableMeshes[i]->getTexturePath() == texturePath && 
-                        (!availableMeshes[i]->getBuiltinName().empty() || availableMeshes[i]->isYUpToZUp() == objData.yUpToZUp)) {
-                        meshIndex = static_cast<int>(i);
-                        break;
-                    }
-                }
-            }
-
-            if (meshIndex == -1) {
-                try {
-                    auto newMesh = std::make_shared<Mesh>(
-                        vulkanContext,
-                        modelPath, texturePath,
-                        descriptorPool->getHandle(), 
-                        descriptorSetLayout->getHandle(),
-                        uniformBuffer->getHandle(),
-                        objData.yUpToZUp
-                    );
-                    availableMeshes.push_back(newMesh);
-                    meshNames.push_back(std::filesystem::path(modelPath).stem().string());
-                    meshIndex = static_cast<int>(availableMeshes.size() - 1);
-                } catch (const std::exception& e) {
-                    sceneMessage += " | " + Lang::fmt("Mesh skipped: %s (%s)",
-                                                      objData.modelPath.c_str(), e.what());
-                    continue;   // on saute cet objet, le reste de la scene se charge
-                }
-            }
-
-            // Cree l'objet et restaure sa transformation.
-            auto newObject = std::make_shared<SceneObject>(availableMeshes[meshIndex]);
-            newObject->position = objData.position;
-            newObject->setEulerDegrees(objData.rotation);
-            newObject->scale    = objData.scale;
-            newObject->meshIndex = meshIndex;
-            newObject->id = claimObjectId(objData.id);
-            newObject->bodyType = objData.bodyType;
-            newObject->mass = objData.mass;
-            newObject->name = objData.name.empty() ? ("Object " + std::to_string(sceneObjects.size())) : objData.name;
-            newObject->metallic  = objData.metallic;
-            newObject->roughness = objData.roughness;
-            newObject->worldUvScale = objData.worldUvScale;
-            newObject->scriptPath = objData.scriptPath;
-            newObject->materialIndex = objData.materialIndex;
-            std::cout << "[load] objet " << sceneObjects.size() << " materialIndex lu = " << objData.materialIndex << std::endl;
+            auto newObject = createObject(scene.objects[oi], true);
+            if (!newObject) continue;   // modèle introuvable : on saute cet objet, le reste se charge 
             sceneObjects.push_back(newObject);
             indexMap[oi] = static_cast<int>(sceneObjects.size()) - 1;
         }
@@ -692,12 +620,12 @@ void Application::loadScene() {
         // --- Environnement / eclairage ---
         {
             const EnvironmentData& ed = scene.environment;
-            exposure        = ed.exposure;
-            shininess       = ed.envIntensity;
-            showSky         = ed.showSky;
-            lightDirection  = ed.lightDirection;
-            lightColor      = ed.lightColor;
-            lightIntensity  = ed.lightIntensity;
+            exposure = ed.exposure;
+            shininess = ed.envIntensity;
+            showSky = ed.showSky;
+            lightDirection = ed.lightDirection;
+            lightColor = ed.lightColor;
+            lightIntensity = ed.lightIntensity;
             ambientStrength = ed.ambientStrength;
 
             commandBuffer->setSky(skyRenderer.get(), showSky);
@@ -1231,4 +1159,87 @@ void Application::setModelYUp(int meshIdx, bool on) {
         if (o->meshIndex == meshIdx) o->setMesh(fresh);
     }
     commandBuffer->setSceneObjects(sceneObjects);
+}
+
+std::string Application::projectPath(const std::string& rel) const {
+    namespace fs = std::filesystem;
+    const fs::path candidate = fs::path(currentProjectDir) / rel;
+    std::error_code ec;
+    if (fs::exists(candidate, ec)) return candidate.string();
+    return rel;     // repli : ancien chemin absolu, ou relatif au moteur
+}
+
+std::shared_ptr<SceneObject> Application::createObject(const SceneObjectData& d, bool keepId) {
+    const std::string modelPath = projectPath(d.modelPath);
+    const std::string texturePath = projectPath(d.texturePath);
+    int meshIndex = -1;
+
+    // une primitive : par son nom
+    if (d.modelPath.rfind("builtin:", 0) == 0) {
+        const std::string bn = d.modelPath.substr(8);
+        for (size_t i = 0; i < availableMeshes.size(); ++i) {
+            if (availableMeshes[i]->getBuiltinName() == bn) {
+                meshIndex = static_cast<int>(i);
+                break;
+            }
+        }
+        if (meshIndex < 0) {
+            sceneMessage += " | " + Lang::fmt("Unknown primitive: %s", bn.c_str());
+            return nullptr;
+        }
+    }
+
+    // un modèle importé : même fichier, même texture, même redressement 
+    if (meshIndex < 0) {
+        for (size_t i = 0; i < availableMeshes.size(); ++i) {
+            if (availableMeshes[i]->getModelPath() == modelPath && 
+                availableMeshes[i]->getTexturePath() == texturePath && 
+                (!availableMeshes[i]->getBuiltinName().empty() || availableMeshes[i]->isYUpToZUp() == d.yUpToZUp)) {
+                    meshIndex = static_cast<int>(i);
+                    break;
+            }
+        }
+    }
+
+    // pas encore chargé : on le charge 
+    if (meshIndex < 0) {
+        try {
+            auto newMesh = std::make_shared<Mesh>(vulkanContext, modelPath, texturePath,
+                                                  descriptorPool->getHandle(), descriptorSetLayout->getHandle(),
+                                                  uniformBuffer->getHandle(), d.yUpToZUp);
+            availableMeshes.push_back(newMesh);
+            meshNames.push_back(std::filesystem::path(modelPath).stem().string());
+            meshIndex = static_cast<int>(availableMeshes.size()) -1;
+        } catch (const std::exception& e) {
+            sceneMessage += " | " + Lang::fmt("Mesh skipped: %s (%s)", d.modelPath.c_str(), e.what());
+            return nullptr;
+        }
+    }
+
+    auto o = std::make_shared<SceneObject>(availableMeshes[meshIndex]);
+    o->position = d.position;
+    o->setEulerDegrees(d.rotation);
+    o->scale = d.scale;
+    o->meshIndex = meshIndex;
+    o->id = keepId ? claimObjectId(d.id) : newObjectId();
+    o->bodyType = d.bodyType;
+    o->mass = d.mass;
+    o->name = d.name.empty() ? ("Object " + std::to_string(sceneObjects.size())) : d.name;
+    o->metallic = d.metallic;
+    o->roughness = d.roughness;
+    o->worldUvScale = d.worldUvScale;
+    o->scriptPath = d.scriptPath;
+    o->materialIndex = d.materialIndex;
+
+    // animation et machine à états : utilisables tout de suite si les clips sont déjà chargés 
+    // (au chargement d'une scène, ils sont recalés ensuite, une fois les fichiers d'animations lus)
+    o->animSpeed = d.animSpeed;
+    o->animLoop = d.animLoop;
+    o->animPlaying = d.animPlaying;
+    const auto& clips = availableMeshes[meshIndex]->getClips();
+    for (size_t c = 0; c < clips.size(); ++c) {
+        if (clips[c].name == d.animClipName) { o->animClip = static_cast<int>(c); break; }
+    }
+    o->stateMachine.asset = findAnimMachine(d.stateMachine);
+    return o;
 }

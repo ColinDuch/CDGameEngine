@@ -106,6 +106,9 @@ struct SceneData {
     GameCamera gameCamera;  // absente des anciennes scènes :caméra de l'éditeur
 };
 
+class JsonWriter;
+class JsonValue;
+
 namespace SceneSerializer {
     void save(const std::string& path,
               const std::vector<std::shared_ptr<SceneObject>>& sceneObjects,
@@ -121,4 +124,9 @@ namespace SceneSerializer {
               const GameCamera& gameCamera);
 
     SceneData load(const std::string& path);
+
+    // un objet seul, en JSON : partage par scene.json et par les prefabs
+    void writeObject(JsonWriter& w, const SceneObject& obj,
+                     const std::vector<std::shared_ptr<Mesh>>& availableMeshes);
+    SceneObjectData readObject(const JsonValue& o);
 }

@@ -73,49 +73,7 @@ void SceneSerializer::save(const std::string& path,
     // --- Objets ---
     w.key("objects");
     w.beginArray();
-    for (const auto& obj : sceneObjects) {
-        std::string clipName;
-        if (obj->animClip >= 0 && obj->meshIndex >=0 && obj->meshIndex < static_cast<int>(availableMeshes.size())) {
-            const auto& cl = availableMeshes[obj->meshIndex]->getClips();
-            if (obj->animClip < static_cast<int>(cl.size())) clipName = cl[obj->animClip].name;
-        
-        } 
-        w.beginObject();
-        if (obj->meshIndex >= 0 && obj->meshIndex < static_cast<int>(availableMeshes.size())) {
-            const auto& mesh = availableMeshes[obj->meshIndex];
-            if (!mesh->getBuiltinName().empty()) {
-                w.key("modelPath"); w.value("builtin:" + mesh->getBuiltinName());
-                w.key("texturePath"); w.value(std::string(""));
-            } else {
-                w.key("modelPath"); w.value(assetRelPath(mesh->getModelPath(), "models"));
-                w.key("texturePath"); w.value(assetRelPath(mesh->getTexturePath(), "textures"));
-                w.key("yUpToZUp"); w.value(mesh->isYUpToZUp() ? 1 : 0);
-            }
-        } else {
-            // Objet sans mesh (groupe / Empty).
-            w.key("modelPath");   w.value(std::string(""));
-            w.key("texturePath"); w.value(std::string(""));
-        }
-        w.key("scriptPath");  w.value(obj->scriptPath);
-        writeVec3(w, "position", obj->position);
-        writeVec3(w, "rotation", obj->getEulerDegrees());
-        writeVec3(w, "scale", obj->scale);
-        w.key("metallic"); w.value(static_cast<double>(obj->metallic));
-        w.key("roughness"); w.value(static_cast<double>(obj->roughness));
-        w.key("worldUvScale"); w.value(static_cast<double>(obj->worldUvScale));
-        w.key("materialIndex"); w.value(static_cast<double>(obj->materialIndex));
-        w.key("parent"); w.value(static_cast<double>(obj->parent));
-        w.key("name"); w.value(obj->name);
-        w.key("id"); w.value(static_cast<double>(obj->id));
-        w.key("body"); w.value(std::string(SceneObject::bodyTypeName(obj->bodyType)));
-        w.key("mass"); w.value(static_cast<double>(obj->mass));
-        w.key("animClip"); w.value(clipName);
-        w.key("animSpeed"); w.value(static_cast<double>(obj->animSpeed));
-        w.key("animLoop"); w.value(static_cast<double>(obj->animLoop ?1 : 0));
-        w.key("animPlaying"); w.value(static_cast<double>(obj->animPlaying ? 1 : 0));
-        w.key("stateMachine"); w.value(obj->stateMachine.asset ? obj->stateMachine.asset->name : std::string(""));
-        w.endObject();
-    }
+    for (const auto& obj : sceneObjects) writeObject(w, *obj, availableMeshes);
     w.endArray();
 
     // --- Terrain ---
@@ -263,30 +221,7 @@ SceneData SceneSerializer::load(const std::string& path) {
     if (root.has("objects")) {
         const JsonValue& objects = root["objects"];
         for (size_t i = 0; i < objects.size(); i++) {
-            const JsonValue& o = objects[i];
-            SceneObjectData data;
-            data.modelPath = o["modelPath"].asString();
-            data.yUpToZUp = o.has("yUpToZUp") && o["yUpToZUp"].isNumber() && o["yUpToZUp"].asDouble() != 0.0;
-            data.texturePath = o["texturePath"].asString();
-            data.position = readVec3(o["position"]);
-            data.rotation = readVec3(o["rotation"]);
-            data.scale = readVec3(o["scale"]);
-            data.scriptPath = o.has("scriptPath") ? o["scriptPath"].asString() : std::string("");
-            data.metallic = o.has("metallic") ? static_cast<float>(o["metallic"].asDouble())  : 0.0f;
-            data.roughness = o.has("roughness") ? static_cast<float>(o["roughness"].asDouble()) : 0.5f;
-            data.worldUvScale = o.has("worldUvScale") ? static_cast<float>(o["worldUvScale"].asDouble()) : 0.0f;
-            data.materialIndex = o.has("materialIndex") ? static_cast<int>(o["materialIndex"].asDouble()) : -1;
-            data.parent = o.has("parent") ? static_cast<int>(o["parent"].asDouble()) : -1;
-            data.name = o.has("name") ? o["name"].asString() : std::string("");
-            data.id = (o.has("id") && o["id"].isNumber()) ? static_cast<uint32_t>(o["id"].asDouble()) : 0;
-            data.bodyType = SceneObject::bodyTypeFromName(o.has("body") && o["body"].isString() ? o["body"].asString() : "");
-            data.mass = (o.has("mass") && o["mass"].isNumber()) ? static_cast<float>(o["mass"].asDouble()) : 1.0f;
-            data.animClipName = o.has("animClip") ? o["animClip"].asString() : std::string("");
-            data.animSpeed = o.has("animSpeed") ? static_cast<float>(o["animSpeed"].asDouble()) : 1.0f;
-            data.animLoop = o.has("animLoop") ? (o["animLoop"].asDouble() != 0.0) : true;
-            data.animPlaying = o.has("animPlaying") ? (o["animPlaying"].asDouble() != 0.0) : true;
-            data.stateMachine = o.has("stateMachine") ? o["stateMachine"].asString() : std::string("");
-            scene.objects.push_back(data);
+            scene.objects.push_back(readObject(objects[i]));
         }
     }
 
@@ -397,4 +332,74 @@ SceneData SceneSerializer::load(const std::string& path) {
     }
 
     return scene;
+}
+
+void SceneSerializer::writeObject(JsonWriter& w, const SceneObject& obj,
+                                  const std::vector<std::shared_ptr<Mesh>>& availableMeshes) {
+    std::string clipName;
+    if (obj.animClip >= 0 && obj.meshIndex >= 0 && obj.meshIndex < static_cast<int>(availableMeshes.size())) {
+        const auto& cl = availableMeshes[obj.meshIndex]->getClips();
+        if (obj.animClip < static_cast<int>(cl.size())) clipName = cl[obj.animClip].name;
+    }
+    w.beginObject();
+    if (obj.meshIndex >= 0 && obj.meshIndex < static_cast<int>(availableMeshes.size())) {
+        const auto& mesh = availableMeshes[obj.meshIndex];
+        if (!mesh->getBuiltinName().empty()) {
+            w.key("modelPath"); w.value("builtin:" + mesh->getBuiltinName());
+            w.key("texturePath"); w.value(std::string(""));
+        } else {
+            w.key("modelPath"); w.value(assetRelPath(mesh->getModelPath(), "models"));
+            w.key("texturePath"); w.value(assetRelPath(mesh->getTexturePath(), "textures"));
+            w.key("yUpToZUp"); w.value(mesh->isYUpToZUp() ? 1 : 0);
+        }
+    } else {
+        // Objet sans mesh (groupe / Empty).
+        w.key("modelPath");   w.value(std::string(""));
+        w.key("texturePath"); w.value(std::string(""));
+    }
+    w.key("scriptPath");  w.value(obj.scriptPath);
+    writeVec3(w, "position", obj.position);
+    writeVec3(w, "rotation", obj.getEulerDegrees());
+    writeVec3(w, "scale", obj.scale);
+    w.key("metallic"); w.value(static_cast<double>(obj.metallic));
+    w.key("roughness"); w.value(static_cast<double>(obj.roughness));
+    w.key("worldUvScale"); w.value(static_cast<double>(obj.worldUvScale));
+    w.key("materialIndex"); w.value(static_cast<double>(obj.materialIndex));
+    w.key("parent"); w.value(static_cast<double>(obj.parent));
+    w.key("name"); w.value(obj.name);
+    w.key("id"); w.value(static_cast<double>(obj.id));
+    w.key("body"); w.value(std::string(SceneObject::bodyTypeName(obj.bodyType)));
+    w.key("mass"); w.value(static_cast<double>(obj.mass));
+    w.key("animClip"); w.value(clipName);
+    w.key("animSpeed"); w.value(static_cast<double>(obj.animSpeed));
+    w.key("animLoop"); w.value(static_cast<double>(obj.animLoop ? 1 : 0));
+    w.key("animPlaying"); w.value(static_cast<double>(obj.animPlaying ? 1 : 0));
+    w.key("stateMachine"); w.value(obj.stateMachine.asset ? obj.stateMachine.asset->name : std::string(""));
+    w.endObject();
+}
+
+SceneObjectData SceneSerializer::readObject(const JsonValue& o) {
+    SceneObjectData data;
+    data.modelPath = o["modelPath"].asString();
+    data.yUpToZUp = o.has("yUpToZUp") && o["yUpToZUp"].isNumber() && o["yUpToZUp"].asDouble() != 0.0;
+    data.texturePath = o["texturePath"].asString();
+    data.position = readVec3(o["position"]);
+    data.rotation = readVec3(o["rotation"]);
+    data.scale = readVec3(o["scale"]);
+    data.scriptPath = o.has("scriptPath") ? o["scriptPath"].asString() : std::string("");
+    data.metallic = o.has("metallic") ? static_cast<float>(o["metallic"].asDouble()) : 0.0f;
+    data.roughness = o.has("roughness") ? static_cast<float>(o["roughness"].asDouble()) : 0.5f;
+    data.worldUvScale = o.has("worldUvScale") ? static_cast<float>(o["worldUvScale"].asDouble()) : 0.0f;
+    data.materialIndex = o.has("materialIndex") ? static_cast<int>(o["materialIndex"].asDouble()) : -1;
+    data.parent = o.has("parent") ? static_cast<int>(o["parent"].asDouble()) : -1;
+    data.name = o.has("name") ? o["name"].asString() : std::string("");
+    data.id = (o.has("id") && o["id"].isNumber()) ? static_cast<uint32_t>(o["id"].asDouble()) : 0;
+    data.bodyType = SceneObject::bodyTypeFromName(o.has("body") && o["body"].isString() ? o["body"].asString() : "");
+    data.mass = (o.has("mass") && o["mass"].isNumber()) ? static_cast<float>(o["mass"].asDouble()) : 1.0f;
+    data.animClipName = o.has("animClip") ? o["animClip"].asString() : std::string("");
+    data.animSpeed = o.has("animSpeed") ? static_cast<float>(o["animSpeed"].asDouble()) : 1.0f;
+    data.animLoop = o.has("animLoop") ? (o["animLoop"].asDouble() != 0.0) : true;
+    data.animPlaying = o.has("animPlaying") ? (o["animPlaying"].asDouble() != 0.0) : true;
+    data.stateMachine = o.has("stateMachine") ? o["stateMachine"].asString() : std::string("");
+    return data;
 }

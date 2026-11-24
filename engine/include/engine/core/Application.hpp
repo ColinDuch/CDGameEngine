@@ -131,7 +131,7 @@ private:
     float cameraFar    = 10000.0f;
     float shadowRadius = 60.0f;
     bool shadowAutoRadius = true;
-    bool  focusKeyWas = false;
+    bool focusKeyWas = false;
 
     void updateEditorCamera();
 
@@ -426,6 +426,14 @@ private:
     std::vector<RemovedClipData> removedClips;   // clips supprimes, retires a chaque chargement
     void deleteClip(int meshIdx, int clipIdx);
     void setModelYUp(int meshIdx, bool on);     // recharge un modele, redresse ou non 
+
+    // un chemin du projet (asset/...) en chemin utilisable ; repli sur le chemin tel quel
+    std::string projectPath(const std::string& rel) const;
+    // crée un objet depuis sa déscription (scène ou préfab), sans l'ajouter à la scène.
+    // keepId : garder l'id de la description (chargement) ou en donner un neuf (nouvel objet).
+    // nullptr si son modèle est introuvable ; la raison est ajoutée à sceneMessage
+    std::shared_ptr<SceneObject> createObject(const SceneObjectData& d, bool keepId);
+    
     int clipToDelete = -1;  // clip en attente de confirmation
     std::vector<std::shared_ptr<AnimStateMachineAsset>> animMachines;   //assets partages
     void saveAnimMachines();
