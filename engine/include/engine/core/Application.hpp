@@ -309,6 +309,7 @@ private:
         uint32_t id = 0;
         SceneObject::BodyType bodyType = SceneObject::BodyType::None;
         float mass = 1.0f;
+        std::string prefab;
         int meshIndex = 0;
         glm::vec3 position{0.0f};
         glm::quat orientation{1.0f, 0.0f, 0.0f, 0.0f};
@@ -433,6 +434,15 @@ private:
     // keepId : garder l'id de la description (chargement) ou en donner un neuf (nouvel objet).
     // nullptr si son modèle est introuvable ; la raison est ajoutée à sceneMessage
     std::shared_ptr<SceneObject> createObject(const SceneObjectData& d, bool keepId);
+
+    // --- prefabs : des modèles d'objets, dans assets/prefabs ---
+    std::vector<std::string> prefabNames;   // les prefabs du projet, triés 
+    void refreshPrefabs();
+    bool createPrefab(int objectIndex, const std::string& name);
+    int instantiatePrefab(const std::string& name, const glm::vec3& position);  // index, -1 si échec
+    bool showPrefabsPanel = true;
+    void drawPrefabsPanel();
+    std::string prefabNameBuf;  // saisie du nom d'un nouveau prefab
     
     int clipToDelete = -1;  // clip en attente de confirmation
     std::vector<std::shared_ptr<AnimStateMachineAsset>> animMachines;   //assets partages

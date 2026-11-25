@@ -375,6 +375,7 @@ void SceneSerializer::writeObject(JsonWriter& w, const SceneObject& obj,
     w.key("animLoop"); w.value(static_cast<double>(obj.animLoop ? 1 : 0));
     w.key("animPlaying"); w.value(static_cast<double>(obj.animPlaying ? 1 : 0));
     w.key("stateMachine"); w.value(obj.stateMachine.asset ? obj.stateMachine.asset->name : std::string(""));
+    w.key("prefab"); w.value(obj.prefab);
     w.endObject();
 }
 
@@ -401,5 +402,31 @@ SceneObjectData SceneSerializer::readObject(const JsonValue& o) {
     data.animLoop = o.has("animLoop") ? (o["animLoop"].asDouble() != 0.0) : true;
     data.animPlaying = o.has("animPlaying") ? (o["animPlaying"].asDouble() != 0.0) : true;
     data.stateMachine = o.has("stateMachine") ? o["stateMachine"].asString() : std::string("");
+    data.prefab = (o.has("prefab") && o["prefab"].isString()) ? o["prefab"].asString() : std::string("");
     return data;
+}
+
+void SceneSerializer::savePrefab(const std::string& path, const SceneObject& obj,
+                                 const std::vector<std::shared_ptr<Mesh>>& availableMeshes) {
+    
+    JsonWriter w;
+    w.beginObject();
+    w.key("version"); w.value(1);
+    w.key("object");
+    writeObject(w, obj, availableMeshes);
+    w.endObject();
+
+    std::ofstream file(path);
+    if (!file.is_open()) throw std::runtime_error("Impossible d'ecrire : " + path);
+    file << w.toString();
+}
+
+SceneObjectData SceneSerializer::loadPrefab(const std::string& path) {
+    std::ifstream file(path);
+    if (!file.is_open()) throw std::runtime_error("Impossible d'ouvrir : " + path);
+    const std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+
+    const JsonValue root = JsonParser::parse(content);
+    if (!root.isObject() || !root.has("object")) throw std::runtime_error("Prefab invalide : " + path);
+    return readObject(root["object"]);
 }

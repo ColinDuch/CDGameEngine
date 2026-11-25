@@ -24,6 +24,7 @@
 #include <functional>
 #include <cmath>
 #include <algorithm>
+#include <misc/cpp/imgui_stdlib.h>
 #include <cctype>
 
 void Application::drawMenuBar() {
@@ -68,6 +69,7 @@ void Application::drawMenuBar() {
                 ImGui::MenuItem(Lang::tr("Materials"), nullptr, &showMaterialPanel);
                 ImGui::MenuItem(Lang::tr("Controls"), nullptr, &showInputPanel);
                 ImGui::MenuItem(Lang::tr("Game controls"), nullptr, &showGameInputPanel);
+                ImGui::MenuItem(Lang::tr("Prefabs"), nullptr, &showPrefabsPanel);
                 ImGui::MenuItem(Lang::tr("Settings"), nullptr, &showSettingsPanel);
                 ImGui::MenuItem(Lang::tr("State machine"), nullptr, &showStateMachinePanel);
                 ImGui::EndMenu();
@@ -358,6 +360,28 @@ void Application::drawInspectorPanel() {
             selected->name = nameBuf;
         }
         if (ImGui::IsItemActivated()) pushUndo();
+
+        // ---- Prefab ----
+        if (!selected->prefab.empty()) ImGui::TextDisabled(Lang::tr("Prefab: %s"), selected->prefab.c_str());
+        if (!isPlaying && ImGui::Button(Lang::tr("Create prefab"))) {
+            prefabNameBuf = selected->prefab.empty() ? selected->name : selected->prefab;
+            ImGui::OpenPopup("###createprefab");
+        }
+        const std::string prefabTitle = std::string(Lang::tr("Create prefab")) + "###createprefab";
+        if (ImGui::BeginPopupModal(prefabTitle.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::InputText(Lang::tr("Name"), &prefabNameBuf);
+            const bool exists = std::find(prefabNames.begin(), prefabNames.end(), prefabNameBuf) != prefabNames.end();
+            if (exists) ImGui::TextColored(ImVec4(1.0f, 0.7f, 0.2f, 1.0f), "%s", Lang::tr("This prefab exists: it will be replaced."));
+            ImGui::TextDisabled("%s", Lang::tr("The project is saved first."));
+            if (ImGui::Button(Lang::tr("Create")) && !prefabNameBuf.empty()) {
+                createPrefab(selectedObjectIndex, prefabNameBuf);
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+            if (ImGui::Button(Lang::tr("Cancel"))) ImGui::CloseCurrentPopup();
+            ImGui::EndPopup();
+        }
+
         ImGui::Separator();
 
         ImGui::TextDisabled("ID %u", selected->id);
@@ -673,6 +697,7 @@ void Application::buildUI() {
         drawColliders();
         updateViewportPick();   // apres le gizmo : il a la priorite sur le clic
         drawGameInputPanel();
+        drawPrefabsPanel();
         drawInputPanel();
         drawSettingsPanel();
     } else if (editorMode == EditorMode::Animation) {
@@ -1304,5 +1329,27 @@ void Application::drawTimelinePanel() {
         }
     }
     
+    ImGui::End();
+}
+
+void Application::drawPrefabsPanel() {
+    if (!showPrefabsPanel) return;
+    ImGui::Begin(trWin("Prefabs", "prefabs").c_str(), &showPrefabsPanel, panelFlags);
+
+    if (prefabNames.empty()) {
+        ImGui::TextDisabled("%s", Lang::tr("No prefab. Select an object, then Create prefab in the Inspector."));
+        ImGui::End();
+        return;
+    }
+
+    ImGui::TextDisabled("%s", Lang::tr("Double-click: place it at the center of the view."));
+    for (const auto& name : prefabNames) {
+        ImGui::Selectable(name.c_str(), false, ImGuiSelectableFlags_AllowDoubleClick);
+        if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && !isPlaying) {
+            pushUndo();
+            const int index = instantiatePrefab(name, orbitTarget);   // la ou regarde la camera
+            if (index >= 0) selectObject(index, false, false);
+        }
+    }
     ImGui::End();
 }

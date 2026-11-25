@@ -639,7 +639,8 @@ void Application::loadScene() {
             }
         }
 
-        gameCamera = scene.gameCamera;   // après les objets : sa cible est un id d'objet
+        gameCamera = scene.gameCamera;   // après les objets : sa cible est un id d'objet*
+        refreshPrefabs();
 
         timer.mark("environnement");
         timer.report();
@@ -1230,6 +1231,7 @@ std::shared_ptr<SceneObject> Application::createObject(const SceneObjectData& d,
     o->worldUvScale = d.worldUvScale;
     o->scriptPath = d.scriptPath;
     o->materialIndex = d.materialIndex;
+    o->prefab = d.prefab;
 
     // animation et machine à états : utilisables tout de suite si les clips sont déjà chargés 
     // (au chargement d'une scène, ils sont recalés ensuite, une fois les fichiers d'animations lus)
@@ -1242,4 +1244,82 @@ std::shared_ptr<SceneObject> Application::createObject(const SceneObjectData& d,
     }
     o->stateMachine.asset = findAnimMachine(d.stateMachine);
     return o;
+}
+
+/*
+-----------------------------------------------------------------------------
+Prefabs : assets/prefabs/<nom>.prefab, un objet décrit comme dans scene.json
+-----------------------------------------------------------------------------
+*/
+namespace {
+    // un nom de prefab utilisable comme nom de fichier
+    std::string prefabFileName(std::string name) {
+        for (char& c : name) {
+            if (c == '/' || c == '\\' || c == ':' || c == ' ') c = '_';
+        }
+        return name.empty() ? std::string("Prefab") : name;
+    }
+}
+
+void Application::refreshPrefabs() {
+    namespace fs = std::filesystem;
+    prefabNames.clear();
+    std::error_code ec;
+    const fs::path dir = fs::path(currentProjectDir) / "assets" / "prefabs";
+    if (currentProjectDir.empty() || !fs::is_directory(dir, ec)) return;
+    for (const auto& entry : fs::directory_iterator(dir, ec)) {
+        if (entry.path().extension() == ".prefab") prefabNames.push_back(entry.path().stem().string());
+    }
+    std::sort(prefabNames.begin(), prefabNames.end());
+}
+
+bool Application::createPrefab(int objectIndex, const std::string& wanted) {
+    namespace fs = std::filesystem;
+    if (objectIndex < 0 || objectIndex >= static_cast<int>(sceneObjects.size())) return false;
+    if (currentProjectDir.empty()) {
+        sceneMessage = Lang::tr("Save the project before creating a prefab.");
+        return false;
+    }
+
+    // le projet est enregistré d'abord : les fichiers du modèle sont copiés dans assets/,
+    // la ou le prefab ira les chercher
+    saveScene();
+
+    const std::string name = prefabFileName(wanted);
+    const fs::path dir = fs::path(currentProjectDir) / "assets" / "prefabs";
+    std::error_code ec;
+    fs::create_directories(dir, ec);
+    try {
+        SceneObject& obj = *sceneObjects[objectIndex];
+        obj.prefab = name;  // l'objet d'origine en devient une instance
+        SceneSerializer::savePrefab((dir / (name + ".prefab")).string(), obj, availableMeshes);
+    } catch (const std::exception& e) {
+        sceneMessage = Lang::fmt("Prefab not saved: %s", e.what());
+        return false;
+    }
+    refreshPrefabs();
+    sceneMessage = Lang::fmt("Prefab created: %s", name.c_str());
+    return true;
+}
+
+int Application::instantiatePrefab(const std::string& name, const glm::vec3& position) {
+    namespace fs = std::filesystem;
+    const fs::path file = fs::path(currentProjectDir) / "assets" / "prefabs" / (name + ".prefab");
+
+    SceneObjectData data;
+    try {
+        data = SceneSerializer::loadPrefab(file.string());
+    } catch (const std::exception& e) {
+        sceneMessage = Lang::fmt("Prefab unreadable: %s", e.what());
+        return -1;
+    }
+    data.position = position;   // la où on le place
+    data.parent = -1;       // un prefab arrive seul (pas encore d'enfants)
+    data.prefab = name;
+
+    auto o = createObject(data, false);     // un id neuf : c'est un nouvel objet
+    if (!o) return -1;
+    sceneObjects.push_back(o);
+    commandBuffer->setSceneObjects(sceneObjects);
+    return static_cast<int>(sceneObjects.size()) - 1;
 }

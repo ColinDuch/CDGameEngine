@@ -479,3 +479,16 @@ Eye height=Hauteur des yeux
 Fixed angle=Angle fixe
 
 unknown camera mode: %s=mode de caméra inconnu : %s
+
+# --- Prefabs ---
+Prefabs=Prefabs
+Prefab: %s=Prefab : %s
+Create prefab=Créer un prefab
+This prefab exists: it will be replaced.=Ce prefab existe : il sera remplacé.
+The project is saved first.=Le projet est d'abord enregistré.
+No prefab. Select an object, then Create prefab in the Inspector.=Aucun prefab. Sélectionne un objet, puis Créer un prefab dans l'Inspecteur.
+Double-click: place it at the center of the view.=Double-clic : le placer au centre de la vue.
+Save the project before creating a prefab.=Enregistre le projet avant de créer un prefab.
+Prefab not saved: %s=Prefab non enregistré : %s
+Prefab created: %s=Prefab créé : %s
+Prefab unreadable: %s=Prefab illisible : %s

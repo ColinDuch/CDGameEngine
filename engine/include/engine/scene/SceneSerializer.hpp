@@ -49,6 +49,7 @@ struct SceneObjectData {
     bool animLoop = true;
     bool animPlaying= true;
     std::string stateMachine;   // nom de l asset, vide = aucune
+    std::string prefab; // prefab dont l'objet vient
 };
 
 struct TerrainData {
@@ -129,4 +130,9 @@ namespace SceneSerializer {
     void writeObject(JsonWriter& w, const SceneObject& obj,
                      const std::vector<std::shared_ptr<Mesh>>& availableMeshes);
     SceneObjectData readObject(const JsonValue& o);
+
+    // un prefab : un objet seul dans son fichier (assets/prefabs/<nom>.prefab).throw si echec
+    void savePrefab(const std::string& path, const SceneObject& obj,
+                    const std::vector<std::shared_ptr<Mesh>>& availableMeshes);
+    SceneObjectData loadPrefab(const std::string& path);
 }

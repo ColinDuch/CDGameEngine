@@ -38,6 +38,7 @@ public:
     int parent = -1;                 // index dans sceneObjects (-1 = racine)
     glm::mat4 worldMatrix{1.0f};     // CACHE, recalcule une fois par frame
     std::string scriptPath;   // relatif au projet, ex "code/objet_0.lua" (vide = aucun)
+    std::string prefab;     // prefab dont il vient (vide = aucun) ; simple information pour l'instant
 
     // Euler (degres) uniquement pour les sliders et la sauvegarde .scene.
     glm::vec3 getEulerDegrees() const;
